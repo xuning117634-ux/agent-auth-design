@@ -1,7 +1,11 @@
 # 未来授权能力演进
 
 > 文档状态：未来设计候选，不属于当前版本实现范围，也不作为当前版本验收依据。
-> 当前版本仍以 [项目总体架构](../project-overall-architecture.md) 中的单对话授权模型为准。
+> 负责人：项目维护者
+> 适用版本：V1 之后
+> 最后更新：2026-06-09
+> 阅读顺序：04-01（完成当前版本文档后再读）
+> 当前版本以 [策略中心功能规格](../02-policy-center/01-policy-center-spec.md) 和 [数据模型](../02-policy-center/03-data-model.md) 为准。
 
 ## 演进目标
 
@@ -11,7 +15,29 @@
 - 当前用户在当前 Agent 下跨对话授权 30 天。
 - 对话级和 Agent 级授权的立即撤销。
 - 明文 tokenId 向不透明随机 tokenId 演进。
+- Agent-工具绑定与授权标签的 Redis 缓存。
 - 更完整的授权审计、授权列表与用户自助管理。
+
+## Agent 工具策略缓存
+
+当前版本每次授权判断直接查询 `agent_tool_policy` 数据库表。未来在调用量上升后，可增加 Redis 缓存：
+
+```text
+tool-policy:{agentId}:{toolId}
+
+bound    -> true | false
+authMode -> NO_AUTH_REQUIRED | USER_AUTH_REQUIRED
+```
+
+设计原则：
+
+- 数据库始终是 Agent-工具绑定和标签配置的真相源。
+- Redis 只作为运行时查询加速，不作为管理员配置的唯一存储。
+- 缓存未命中时回源数据库并写回缓存。
+- 管理员整份保存工具策略后，可主动删除该 Agent 的相关缓存，也可允许依赖较短 TTL 自然刷新。
+- 未来版本允许配置变更存在短暂延迟，但从 `NO_AUTH_REQUIRED` 改为 `USER_AUTH_REQUIRED` 的最大延迟必须由缓存 TTL 明确定义。
+- 缓存异常时应回源数据库；数据库也不可用时返回 `DENY + POLICY_STORE_UNAVAILABLE`。
+- 未绑定工具必须缓存为显式负结果或回源数据库确认，不得将缓存未命中直接解释为“需要用户授权”。
 
 ## 统一 Grant Hash 候选模型
 
