@@ -1,0 +1,7 @@
+spring:
+  data:
+    redis:
+      cluster:
+        nodes: ${POLICY_CENTER_REDIS_CLUSTER_NODES:}
+      password: ${POLICY_CENTER_REDIS_PASSWORD:}
+      timeout: ${POLICY_CENTER_REDIS_TIMEOUT:2s}
