@@ -9,9 +9,6 @@ spring:
     username: ${POLICY_CENTER_DB_USERNAME:root}
     password: ${POLICY_CENTER_DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
   data:
     redis:
       host: ${POLICY_CENTER_REDIS_HOST:localhost}

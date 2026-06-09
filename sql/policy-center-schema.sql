@@ -1,3 +1,9 @@
+CREATE DATABASE IF NOT EXISTS policy_center
+    DEFAULT CHARACTER SET utf8mb4
+    COLLATE utf8mb4_general_ci;
+
+USE policy_center;
+
 CREATE TABLE IF NOT EXISTS agent_tool_policy (
     id BIGINT NOT NULL AUTO_INCREMENT,
     agent_id VARCHAR(128) NOT NULL,
@@ -8,4 +14,4 @@ CREATE TABLE IF NOT EXISTS agent_tool_policy (
     PRIMARY KEY (id),
     UNIQUE KEY uk_agent_tool_policy_agent_tool (agent_id, tool_id),
     KEY idx_agent_tool_policy_agent_id (agent_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

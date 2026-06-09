@@ -206,7 +206,7 @@ traceId
 已确认的实现约束：
 
 1. 服务框架为 Spring Boot 3.4.9 + Java 21。
-2. 数据库为 MySQL，迁移工具为 Flyway，数据访问使用 MyBatis + XML Mapper。
+2. 数据库为 MySQL，数据库和表由人工执行 `sql/policy-center-schema.sql` 创建，数据访问使用 MyBatis + XML Mapper。
 3. Redis 客户端为 Spring Data Redis + Lettuce；本地开发使用单机 Redis，生产保留 Redis Cluster 配置能力。
 4. V1 暂不实现接口认证，调用方身份通过日志字段保留扩展空间。
 5. 当前对话授权记录物理安全 TTL 为 7 天。

@@ -16,7 +16,7 @@
 | 内部功能 | 5 / 13 已完成 |
 | 验收场景 | 运行时、管理保存、人在回路核心路径已有单元与 HTTP 测试覆盖；存储集成待验证 |
 | 当前里程碑 | M1 进行中 |
-| 当前代码基线 | Spring Boot 策略中心服务骨架、领域服务、REST 接口、MyBatis/Flyway、Redis 适配和自动化测试已进入仓库 |
+| 当前代码基线 | Spring Boot 策略中心服务骨架、领域服务、REST 接口、MyBatis、Redis 适配和自动化测试已进入仓库；MySQL 表由人工 SQL 创建 |
 
 本表只统计满足本文“完成标准”的项目，不使用主观百分比。
 
@@ -36,7 +36,7 @@
 | F01 | Java 服务工程与配置体系 | 可启动的服务入口、环境配置、健康检查和 Maven 构建 | Spring Boot 3.4.9、Java 21 | 无 | 进行中 | `PolicyCenterApplication`、`application.yml`、Actuator、Maven 依赖已实现；待真实配置启动验证 |
 | F02 | 领域枚举、请求响应和错误模型 | `AuthMode`、`Decision`、`Reason`、授权状态、API DTO 和错误结构 | F01、API 契约 | 场景 1-8、18-19 | 已完成 | `domain/`、`api/dto/`、`ErrorCode`、`GlobalExceptionHandler`；`mvn test` 24 tests passed |
 | F03 | tokenId 解析与校验 | 解析 `agentId:userId:conversationId`，校验字段数量、非空和分隔符约束 | F02 | 场景 6、22 | 已完成 | `TokenId`、`TokenIdTest` |
-| F04 | `agent_tool_policy` 数据库模型与仓储 | Flyway 表迁移、实体或记录模型、唯一约束、按 Agent 与工具查询 | F01、MySQL、Flyway | 场景 1-2、5、7、9-13、18-19 | 进行中 | `V1__create_agent_tool_policy.sql`、MyBatis Mapper 和 Repository 已实现；待 MySQL 集成验证 |
+| F04 | `agent_tool_policy` 数据库模型与仓储 | 手动建表 SQL、实体或记录模型、唯一约束、按 Agent 与工具查询 | F01、MySQL | 场景 1-2、5、7、9-13、18-19 | 进行中 | `sql/policy-center-schema.sql`、MyBatis Mapper 和 Repository 已实现；待 MySQL 集成验证 |
 | F05 | Agent 工具策略整份覆盖 | 在单个事务内新增、更新和解绑，默认空标签为 `USER_AUTH_REQUIRED` | F02、F04 | 场景 9-13 | 进行中 | `ToolPolicyService`、`AdminToolPolicyController` 和测试已实现；待 MySQL 事务集成验证 |
 | F06 | 三态授权决策引擎 | 按绑定、标签和当前对话授权返回 `ALLOW`、`AUTHORIZATION_REQUIRED` 或 `DENY` | F02-F04、F07 | 场景 1-8 | 已完成 | `AuthorizationDecisionServiceTest` 覆盖未绑定、无需授权、命中、未命中、非法 tokenId、DB/Redis 异常 |
 | F07 | Redis 当前对话授权 | 操作 `authz:{tokenId}:{toolId}`，授权 Key TTL 7 天，本地单机开发并保留 Redis Cluster 配置 | F01、Spring Data Redis + Lettuce | 场景 3-4、8、14-15、20-22 | 进行中 | `RedisConversationAuthorizationStore` 已实现；待本地 Redis 集成验证 |
@@ -91,7 +91,7 @@ PUT /admin/agents/{agentId}/tool-policies
 | 参数校验 | 已完成 | 空字段、非法枚举、重复 toolId 由 Validation/Service 拦截 |
 | Controller 接入 | 已完成 | `AdminToolPolicyController` |
 | 领域服务实现 | 已完成 | `ToolPolicyService` |
-| 数据库或 Redis 集成 | 进行中 | MyBatis/Flyway 代码已实现，待 MySQL 事务验证 |
+| 数据库或 Redis 集成 | 进行中 | MyBatis 代码和手动建表 SQL 已实现，待 MySQL 事务验证 |
 | 错误码映射 | 已完成 | `INVALID_REQUEST`、`POLICY_STORE_UNAVAILABLE` |
 | 审计事件 | 已完成 | `TOOL_POLICY_REPLACED` 审计事件 |
 | 自动化测试 | 已完成 | `ToolPolicyServiceTest`、`AdminToolPolicyControllerTest` |
@@ -156,7 +156,7 @@ POST /internal/conversation-authorizations/cleanup
 | 编号 | 待确认事项 | 阻塞范围 | 状态 | 解除条件 |
 | --- | --- | --- | --- | --- |
 | B01 | Spring Boot 及依赖版本 | F01-F13、I01-I05 | 已解除 | Spring Boot 3.4.9 + Java 21 |
-| B02 | 数据库和迁移工具 | F04-F06、F08、I01-I03 | 已解除 | MySQL + Flyway |
+| B02 | 数据库和建表方式 | F04-F06、F08、I01-I03 | 已解除 | MySQL + 手动执行 SQL |
 | B03 | Redis 客户端和部署模式 | F06-F11、I01、I03-I05 | 已解除 | Spring Data Redis + Lettuce，本地单机开发，生产保留 Cluster 配置 |
 | B04 | 内部接口认证方式 | F12、I01、I03-I05 | 已解除 | V1 暂不实现接口认证 |
 | B05 | 授权记录物理安全 TTL | F07-F10 | 已解除 | 授权 Key TTL 7 天 |
@@ -197,5 +197,6 @@ POST /internal/conversation-authorizations/cleanup
 | 日期 | 变更项 | 状态变化 | 验证结果 |
 | --- | --- | --- | --- |
 | 2026-06-09 | 建立策略中心开发进度基线 | F01-F13、I01-I05、M1-M5 初始化为未开始；B01-B06 初始化为阻塞 | 确认 `src` 中尚无策略中心实现或测试文件 |
-| 2026-06-09 | 确认后端实现基础选型 | B01-B06 解除，M1/F01 进入进行中 | Spring Boot 3.4.9、MySQL/Flyway、MyBatis XML、Redis/Lettuce、7 天 TTL、SCAN cleanup 已写入文档 |
+| 2026-06-09 | 确认后端实现基础选型 | B01-B06 解除，M1/F01 进入进行中 | Spring Boot 3.4.9、MySQL、MyBatis XML、Redis/Lettuce、7 天 TTL、SCAN cleanup 已写入文档 |
+| 2026-06-09 | 改为人工建库建表 | F04 仍为进行中，等待 MySQL 集成验证 | 移除 Flyway，新增 `sql/policy-center-schema.sql` |
 | 2026-06-09 | 完成策略中心 V1 后端初始实现 | F02、F03、F06、F11、F12 标记已完成；F01、F04、F05、F07-F10、F13 进行中 | `mvn test` 通过，24 tests，0 failures |
