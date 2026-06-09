@@ -95,11 +95,18 @@ function Invoke-PolicyApi {
         throw "$Method $Path expected HTTP $ExpectedStatus, actual $statusCode. Body: $content"
     }
 
-    if ([string]::IsNullOrWhiteSpace($content)) {
+    $contentText = if ($content -is [byte[]]) {
+        [System.Text.Encoding]::UTF8.GetString($content)
+    }
+    else {
+        [string]$content
+    }
+
+    if ([string]::IsNullOrWhiteSpace($contentText)) {
         return $null
     }
 
-    return $content | ConvertFrom-Json
+    return $contentText | ConvertFrom-Json
 }
 
 function Invoke-Cleanup {
