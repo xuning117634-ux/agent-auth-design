@@ -5,7 +5,7 @@
 > 适用版本：V1
 > 最后更新：2026-06-09
 > 阅读顺序：01
-> 文档职责：描述系统参与者、跨模块调用链和职责边界。策略中心内部规则以 [策略中心功能规格](02-policy-center/01-policy-center-spec.md) 为准。
+> 文档职责：描述系统参与者、跨模块调用链和职责边界。策略中心内部规则以 [策略中心功能规格](../02-policy-center/01-policy-center-spec.md) 为准。
 
 ## 架构范围
 
@@ -90,7 +90,7 @@ flowchart LR
 
 ## 核心调用时序图
 
-该图表示目标工具需要用户授权，且当前对话授权已经存在的正常调用路径。策略判断规则见 [授权决策](02-policy-center/01-policy-center-spec.md#授权决策)。
+该图表示目标工具需要用户授权，且当前对话授权已经存在的正常调用路径。策略判断规则见 [授权决策](../02-policy-center/01-policy-center-spec.md#授权决策)。
 
 ```mermaid
 sequenceDiagram
@@ -211,9 +211,9 @@ sequenceDiagram
 
 ## 相关文档
 
-- [文档导航](README.md)
-- [策略中心功能规格](02-policy-center/01-policy-center-spec.md)
-- [策略中心 API 契约](02-policy-center/02-api-contract.md)
-- [策略中心数据模型](02-policy-center/03-data-model.md)
-- [策略中心验收场景](02-policy-center/04-acceptance-scenarios.md)
-- [未来授权能力演进](04-future/01-future-authorization-evolution.md)
+- [文档导航](../README.md)
+- [策略中心功能规格](../02-policy-center/01-policy-center-spec.md)
+- [策略中心 API 契约](../02-policy-center/02-api-contract.md)
+- [策略中心数据模型](../02-policy-center/03-data-model.md)
+- [策略中心验收场景](../02-policy-center/04-acceptance-scenarios.md)
+- [未来授权能力演进](../04-future/01-future-authorization-evolution.md)
