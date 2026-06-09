@@ -35,19 +35,65 @@
 
 ## 1. 查询可管理 Agent 列表
 
-Owner：Agent 网关已存在
+Owner：Agent 网关
 Caller：管理面前端
 
+```http
+GET /admin/agents?keyword=&page=1&pageSize=20
+```
 
+Response:
 
+```json
+{
+  "items": [
+    {
+      "agentId": "agent-a",
+      "agentName": "销售助手",
+      "description": "处理销售相关任务",
+      "status": "ACTIVE"
+    }
+  ],
+  "page": 1,
+  "pageSize": 20,
+  "total": 1
+}
+```
+
+规则：
+
+- 只返回当前管理员有权限管理的 Agent。
+- `agentId` 必须全局唯一。
+- 前端只允许选择 `status = ACTIVE` 的 Agent。
+- 当列表为空时，页面展示空状态并禁用工具策略编辑区。
 
 ## 2. 查询 MCP 工具列表
 
-Owner：MCP 网关提供
+Owner：MCP 网关
 Caller：管理面前端
 
+```http
+GET /admin/mcp-tools?keyword=&page=1&pageSize=50
+```
 
+Response:
 
+```json
+{
+  "items": [
+    {
+      "toolId": "tool-a",
+      "toolName": "查询客户",
+      "description": "查询客户基础信息",
+      "serverName": "crm-mcp-server",
+      "status": "ACTIVE"
+    }
+  ],
+  "page": 1,
+  "pageSize": 50,
+  "total": 1
+}
+```
 
 规则：
 
@@ -57,7 +103,6 @@ Caller：管理面前端
 - 前端从该全量列表中选择部分工具绑定到当前 Agent。
 - 工具分类、图标、版本等展示字段后续可扩展，不影响策略保存协议。
 - 当工具列表加载失败时，保存按钮必须禁用。
-
 
 ## 3. 查询 Agent 当前工具策略
 
