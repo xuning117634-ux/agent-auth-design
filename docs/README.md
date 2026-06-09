@@ -19,7 +19,7 @@ docs/
 │   ├── 04-acceptance-scenarios.md
 │   ├── 05-development-progress.md
 │   ├── 06-admin-frontend-api.md
-├── 07-mcp-gateway-delivery.md
+│   └── 08-external-api-reference.md
 ├── maven-version-reference.md
 ├── 03-decisions/
 │   ├── README.md
@@ -45,7 +45,7 @@ docs/
 5. [策略中心验收场景](02-policy-center/04-acceptance-scenarios.md)：据此实现自动化测试并验收。
 6. [策略中心开发进度](02-policy-center/05-development-progress.md)：确认已经实现、正在开发和被阻塞的工作。
 7. [管理面前端接口](02-policy-center/06-admin-frontend-api.md)：交付前端同事联调管理页面。
-8. [MCP 网关交付说明](07-mcp-gateway-delivery.md)：交付 MCP 网关同事实现工具目录、授权前置和受控调用。
+8. [策略中心对外接口参考](02-policy-center/08-external-api-reference.md)：按调用方查看当前全部接口及可直接联调的示例数据。
 9. [架构决策记录](03-decisions/README.md)：了解已经确认、不应在编码时随意改变的设计。
 
 [未来授权能力演进](04-future/01-future-authorization-evolution.md) 只用于评估扩展性，不属于 V1 实现和验收范围。
@@ -61,7 +61,7 @@ docs/
 | 可验证行为和测试场景 | [策略中心验收场景](02-policy-center/04-acceptance-scenarios.md) |
 | 当前实现状态、阻塞项和里程碑 | [策略中心开发进度](02-policy-center/05-development-progress.md) |
 | 管理面前端页面联调接口 | [管理面前端接口](02-policy-center/06-admin-frontend-api.md) |
-| MCP 网关对接能力 | [MCP 网关交付说明](07-mcp-gateway-delivery.md) |
+| 策略中心全部对外接口与联调示例 | [策略中心对外接口参考](02-policy-center/08-external-api-reference.md) |
 | 已接受的重要设计选择 | [架构决策记录](03-decisions/README.md) |
 | 未进入当前版本的方案 | [未来授权能力演进](04-future/01-future-authorization-evolution.md) |
 

@@ -45,6 +45,47 @@ function Assert-Equal {
     throw "$Name expected '$Expected', actual '$Actual'"
 }
 
+function Write-RequestDetails {
+    param(
+        [string]$Method,
+        [string]$Uri,
+        [string]$TraceId,
+        [string]$BodyText
+    )
+
+    Write-Host ""
+    Write-Host "[REQUEST] $Method $Uri" -ForegroundColor Cyan
+    Write-Host "X-Trace-Id: $TraceId" -ForegroundColor DarkGray
+    if ([string]::IsNullOrWhiteSpace($BodyText)) {
+        Write-Host "Body: <empty>" -ForegroundColor DarkGray
+    }
+    else {
+        Write-Host "Body:"
+        Write-Host $BodyText
+    }
+}
+
+function Write-ResponseDetails {
+    param(
+        [int]$StatusCode,
+        [string]$ContentText
+    )
+
+    Write-Host "[RESPONSE] HTTP $StatusCode" -ForegroundColor Cyan
+    if ([string]::IsNullOrWhiteSpace($ContentText)) {
+        Write-Host "Body: <empty>" -ForegroundColor DarkGray
+        return
+    }
+
+    try {
+        $formatted = $ContentText | ConvertFrom-Json | ConvertTo-Json -Depth 10
+        Write-Host $formatted
+    }
+    catch {
+        Write-Host $ContentText
+    }
+}
+
 function Invoke-PolicyApi {
     param(
         [ValidateSet("GET", "POST", "PUT")]
@@ -55,18 +96,23 @@ function Invoke-PolicyApi {
     )
 
     $uri = "$($BaseUrl.TrimEnd('/'))$Path"
+    $traceId = "verify-$runId"
     $parameters = @{
         Uri         = $uri
         Method      = $Method
-        Headers     = @{ "X-Trace-Id" = "verify-$runId" }
+        Headers     = @{ "X-Trace-Id" = $traceId }
         ErrorAction = "Stop"
         UseBasicParsing = $true
     }
 
+    $requestBodyText = $null
     if ($null -ne $Body) {
         $parameters.ContentType = "application/json"
-        $parameters.Body = $Body | ConvertTo-Json -Depth 10
+        $requestBodyText = $Body | ConvertTo-Json -Depth 10
+        $parameters.Body = $requestBodyText
     }
+
+    Write-RequestDetails -Method $Method -Uri $uri -TraceId $traceId -BodyText $requestBodyText
 
     try {
         $response = Invoke-WebRequest @parameters
@@ -75,6 +121,8 @@ function Invoke-PolicyApi {
     }
     catch {
         if ($null -eq $_.Exception.Response) {
+            Write-Host "[RESPONSE] TRANSPORT ERROR" -ForegroundColor Red
+            Write-Host $_.Exception.Message
             throw
         }
 
@@ -91,15 +139,17 @@ function Invoke-PolicyApi {
         }
     }
 
-    if ($statusCode -ne $ExpectedStatus) {
-        throw "$Method $Path expected HTTP $ExpectedStatus, actual $statusCode. Body: $content"
-    }
-
     $contentText = if ($content -is [byte[]]) {
         [System.Text.Encoding]::UTF8.GetString($content)
     }
     else {
         [string]$content
+    }
+
+    Write-ResponseDetails -StatusCode $statusCode -ContentText $contentText
+
+    if ($statusCode -ne $ExpectedStatus) {
+        throw "$Method $Path expected HTTP $ExpectedStatus, actual $statusCode. Body: $contentText"
     }
 
     if ([string]::IsNullOrWhiteSpace($contentText)) {
