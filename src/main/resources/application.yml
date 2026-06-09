@@ -1,3 +1,5 @@
+server:
+  port: 18080
 spring:
   application:
     name: policy-center
@@ -7,7 +9,7 @@ spring:
   datasource:
     url: ${POLICY_CENTER_DB_URL:jdbc:mysql://localhost:3306/policy_center?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
     username: ${POLICY_CENTER_DB_USERNAME:root}
-    password: ${POLICY_CENTER_DB_PASSWORD:}
+    password: ${POLICY_CENTER_DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:

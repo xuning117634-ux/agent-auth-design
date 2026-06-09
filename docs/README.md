@@ -76,6 +76,7 @@ docs/
 - Redis 客户端已确认：Spring Data Redis + Lettuce，本地单机开发，生产保留 Redis Cluster 配置能力。
 - V1 暂不实现接口认证，生产接入前需要补充内部调用认证。
 - 具体进度以 [策略中心开发进度](02-policy-center/05-development-progress.md) 为准。
+- 服务启动后可手动运行 `scripts/verify-policy-center.ps1` 验收 MySQL、Redis 和策略接口；该脚本不会随服务自动执行。
 
 ## 当前版本边界
 

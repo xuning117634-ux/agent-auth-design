@@ -45,7 +45,7 @@
 | F10 | 对话授权清理 | 使用 `SCAN MATCH authz:{tokenId}:*` 分批清理全部工具授权，支持重复清理 | F03、F07 | 场景 20-21 | 进行中 | cleanup 接口和 Redis SCAN 适配已实现；待 Redis 集成验证 |
 | F11 | 统一异常处理与 fail-closed | 参数错误、数据库异常、Redis 异常和内部错误的统一映射 | F02、F04、F07 | 场景 6-8、12、18-21、23 | 已完成 | `GlobalExceptionHandler`、服务 fail-closed 测试、HTTP 错误响应测试 |
 | F12 | 审计日志与 traceId | 记录配置、决策、确认、查询和清理事件，不记录敏感凭证 | F01、F02、接口认证与 traceId 方案 | 场景 24 | 已完成 | `AuditLogger`、`Slf4jAuditLogger`，服务审计测试覆盖配置、决策、确认、查询和清理 |
-| F13 | 自动化测试体系 | 单元测试、数据库与 Redis 集成测试、接口测试和完整验收回归 | F01-F12 | 场景 1-24 | 进行中 | 当前 24 个单元/HTTP 测试通过；待数据库与 Redis 集成测试 |
+| F13 | 自动化测试体系 | 单元测试、数据库与 Redis 集成测试、接口测试和完整验收回归 | F01-F12 | 场景 1-24 | 进行中 | 当前 24 个单元/HTTP 测试通过；`scripts/verify-policy-center.ps1` 提供手动端到端验收；待本地 Redis 安装后执行 |
 
 ## 对外接口进度
 
@@ -199,4 +199,5 @@ POST /internal/conversation-authorizations/cleanup
 | 2026-06-09 | 建立策略中心开发进度基线 | F01-F13、I01-I05、M1-M5 初始化为未开始；B01-B06 初始化为阻塞 | 确认 `src` 中尚无策略中心实现或测试文件 |
 | 2026-06-09 | 确认后端实现基础选型 | B01-B06 解除，M1/F01 进入进行中 | Spring Boot 3.4.9、MySQL、MyBatis XML、Redis/Lettuce、7 天 TTL、SCAN cleanup 已写入文档 |
 | 2026-06-09 | 改为人工建库建表 | F04 仍为进行中，等待 MySQL 集成验证 | 移除 Flyway，新增 `sql/policy-center-schema.sql` |
+| 2026-06-09 | 增加手动端到端验收脚本 | F13 保持进行中 | 脚本覆盖健康检查、策略保存、三态决策、授权确认、状态查询、清理和错误语义 |
 | 2026-06-09 | 完成策略中心 V1 后端初始实现 | F02、F03、F06、F11、F12 标记已完成；F01、F04、F05、F07-F10、F13 进行中 | `mvn test` 通过，24 tests，0 failures |
