@@ -19,6 +19,8 @@ docs/
 │   ├── 04-acceptance-scenarios.md
 │   ├── 05-development-progress.md
 │   ├── 06-admin-frontend-api.md
+├── 07-mcp-gateway-delivery.md
+├── maven-version-reference.md
 ├── 03-decisions/
 │   ├── README.md
 │   ├── ADR-001-plaintext-token-id.md
@@ -67,11 +69,12 @@ docs/
 
 ## 当前开发状态
 
-- 仓库当前是 Java 21 Maven 骨架。
-- 权限策略中心尚未开始代码实现。
-- `src/main/java` 中尚无服务入口。
-- 服务框架、数据库、Redis 客户端和迁移工具仍为 `TBD`。
-- 当前工作重点是先锁定策略中心契约，再开始实现。
+- 仓库当前是 Java 21 Maven 骨架，策略中心后端开始进入实现阶段。
+- 服务框架已确认：Spring Boot 3.4.9 + Java 21。
+- 数据库与迁移方案已确认：MySQL + Flyway。
+- 数据访问方式已确认：MyBatis + XML Mapper。
+- Redis 客户端已确认：Spring Data Redis + Lettuce，本地单机开发，生产保留 Redis Cluster 配置能力。
+- V1 暂不实现接口认证，生产接入前需要补充内部调用认证。
 - 具体进度以 [策略中心开发进度](02-policy-center/05-development-progress.md) 为准。
 
 ## 当前版本边界
