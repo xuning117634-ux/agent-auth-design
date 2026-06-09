@@ -1,0 +1,36 @@
+server:
+  port: 18080
+spring:
+  application:
+    name: policy-center
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  datasource:
+    url: ${POLICY_CENTER_DB_URL:jdbc:mysql://localhost:3306/policy_center?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC}
+    username: ${POLICY_CENTER_DB_USERNAME:root}
+    password: ${POLICY_CENTER_DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${POLICY_CENTER_REDIS_HOST:localhost}
+      port: ${POLICY_CENTER_REDIS_PORT:6379}
+      password: ${POLICY_CENTER_REDIS_PASSWORD:}
+      timeout: ${POLICY_CENTER_REDIS_TIMEOUT:2s}
+
+mybatis:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+policy-center:
+  authorization:
+    ttl: 7d
+  redis:
+    scan-count: 500
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -181,7 +181,7 @@ Given Tool X 已绑定 Agent A 且需要用户授权
 And 业务后端收到有效的用户同意
 When 业务后端提交 tokenId 和 Tool X
 Then 策略中心写入 authz:{tokenId}:Tool-X
-And 将 Tool X 加入 authz-index:{tokenId}
+And 授权 Key 的 TTL 为 7 天
 And 返回 AUTHORIZED
 ```
 
@@ -241,8 +241,8 @@ And Redis 不写入授权记录
 Given tokenId 已授权多个工具
 When 业务后端清理该 tokenId
 Then 全部 authz:{tokenId}:{toolId} 被删除
-And authz-index:{tokenId} 被删除
-And 不使用 Redis KEYS 扫描
+And 使用 SCAN MATCH authz:{tokenId}:* 分批清理
+And 不使用 Redis KEYS
 ```
 
 ### 场景 21：重复清理
@@ -287,5 +287,4 @@ And 不包含 Cookie、业务 Token 或密钥
 - 内部接口身份认证与未授权调用。
 - 管理员对 Agent 的管理权限校验。
 - 用户确认凭证伪造、重放和 1 分钟服务端会话校验。
-- 对话结束与迟到授权确认并发。
-- 物理安全 TTL 到期清理。
+- 对话结束与迟到授权确认并发的更强仲裁机制。

@@ -6,14 +6,14 @@
 > 最后更新：2026-06-09
 > 阅读顺序：02-02
 > 依赖：功能语义以 [策略中心功能规格](01-policy-center-spec.md) 为准。
-> 说明：HTTP 鉴权方式、统一响应包裹和最终 URL 前缀为 `TBD`；本文件中的业务字段和语义已固定。
+> 说明：V1 不增加 URL 版本前缀；成功响应按本文示例裸 JSON 返回，错误响应统一为 `{code,message,traceId}`。V1 暂不实现接口认证，生产接入前需要补充内部调用认证。
 
 ## 通用约定
 
 - 请求和响应使用 `application/json`。
 - `tokenId`、`agentId`、`toolId` 均区分大小写。
-- 未知 JSON 字段是否拒绝目前为 `TBD`。
-- 内部接口只允许已认证的内部服务调用；具体认证方式为 `TBD`。
+- 未知 JSON 字段按默认 JSON 反序列化策略忽略；调用方不得依赖未知字段产生行为。
+- V1 暂不实现接口认证；内部接口和管理接口均假设调用方来自受信任网络或上游网关。
 - HTTP `5xx` 表示策略中心自身无法完成操作，不得被调用方解释为允许。
 
 通用错误响应：
@@ -173,7 +173,7 @@ PUT /admin/agents/{agentId}/tool-policies
 - 同一请求重复提交必须得到相同最终状态。
 - 并发整份保存采用“最后成功提交的事务生效”。
 
-工具是否仍存在于 MCP 网关工具目录中的服务端校验方式为 `TBD`。
+V1 保存时不回调 MCP 网关校验工具目录，信任管理面前端提交的 `toolId` 来自 MCP 网关当前全量工具列表。
 
 ## 确认当前对话授权
 
@@ -279,9 +279,9 @@ POST /internal/conversation-authorizations/cleanup
 
 规则：
 
-- 删除 tokenId 对应的全部工具授权及清理索引。
+- 使用 `SCAN MATCH authz:{tokenId}:*` 分批删除 tokenId 对应的全部工具授权。
 - tokenId 不存在或已经清理时仍返回成功，`deletedGrantCount` 为 `0`。
-- 清理必须幂等，不使用 Redis `KEYS` 扫描。
+- 清理必须幂等，不使用 Redis `KEYS`。
 - Redis 操作失败返回 `503 + AUTHORIZATION_STORE_UNAVAILABLE`。
 
 ## 错误码
@@ -295,10 +295,10 @@ POST /internal/conversation-authorizations/cleanup
 | `AUTHORIZATION_STORE_UNAVAILABLE` | 503 | 当前对话授权 Redis 不可用 |
 | `INTERNAL_ERROR` | 500 | 未分类的服务内部错误 |
 
-## 待确认契约
+## 已确认契约
 
-- HTTP URL 是否增加版本前缀，例如 `/v1`。
-- 管理接口和内部接口的认证、授权及调用方身份字段。
-- 是否使用统一响应包裹结构。
-- 用户确认是否增加 `authorizationRequestId` 或签名证明。
-- 分布式追踪 ID 使用请求头还是请求字段传递。
+- HTTP URL 不增加 `/v1` 或服务名前缀。
+- V1 暂不实现接口认证、授权或调用方身份校验。
+- 成功响应不使用统一外层包裹。
+- 用户确认请求不增加 `authorizationRequestId` 或签名证明。
+- 分布式追踪 ID 优先使用 `X-Trace-Id` 请求头；缺失时由策略中心生成并写入错误响应和日志。

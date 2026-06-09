@@ -1,0 +1,11 @@
+package com.huawei.it.roma.liveeda.policycenter.domain;
+
+public enum DecisionReason {
+    NO_AUTH_REQUIRED,
+    CONVERSATION_AUTHORIZED,
+    USER_AUTHORIZATION_REQUIRED,
+    TOOL_NOT_BOUND,
+    INVALID_TOKEN_ID,
+    POLICY_STORE_UNAVAILABLE,
+    AUTHORIZATION_STORE_UNAVAILABLE
+}
