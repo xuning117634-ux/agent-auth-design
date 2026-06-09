@@ -38,66 +38,23 @@
 Owner：Agent 网关
 Caller：管理面前端
 
-```http
-GET /admin/agents?keyword=&page=1&pageSize=20
-```
+对接指引：
 
-Response:
-
-```json
-{
-  "items": [
-    {
-      "agentId": "agent-a",
-      "agentName": "销售助手",
-      "description": "处理销售相关任务",
-      "status": "ACTIVE"
-    }
-  ],
-  "page": 1,
-  "pageSize": 20,
-  "total": 1
-}
-```
-
-规则：
-
-- 只返回当前管理员有权限管理的 Agent。
-- `agentId` 必须全局唯一。
-- 前端只允许选择 `status = ACTIVE` 的 Agent。
-- 当列表为空时，页面展示空状态并禁用工具策略编辑区。
+- 该接口已由 Agent 网关提供，本文不重复定义 URL、请求参数或响应结构。
+- 前端同事应联系 Agent 网关责任人获取现有接口文档、联调环境和鉴权方式。
+- 策略中心管理面只依赖返回结果中的全局唯一 `agentId`。
+- Agent 列表为空、加载失败或当前管理员无可管理 Agent 时，页面应禁用工具策略编辑区。
 
 ## 2. 查询 MCP 工具列表
 
 Owner：MCP 网关
 Caller：管理面前端
 
-```http
-GET /admin/mcp-tools?keyword=&page=1&pageSize=50
-```
+对接指引：
 
-Response:
-
-```json
-{
-  "items": [
-    {
-      "toolId": "tool-a",
-      "toolName": "查询客户",
-      "description": "查询客户基础信息",
-      "serverName": "crm-mcp-server",
-      "status": "ACTIVE"
-    }
-  ],
-  "page": 1,
-  "pageSize": 50,
-  "total": 1
-}
-```
-
-规则：
-
-- 该接口返回当前 MCP 全量工具列表。
+- 该接口已由 MCP 网关提供，本文不重复定义 URL、请求参数或响应结构。
+- 前端同事应联系 MCP 网关责任人获取现有接口文档、联调环境和鉴权方式。
+- 该接口语义应为返回当前 MCP 全量工具列表。
 - `toolId` 全局唯一。
 - 前端只允许绑定 `status = ACTIVE` 的工具。
 - 前端从该全量列表中选择部分工具绑定到当前 Agent。
@@ -247,9 +204,6 @@ AGENT_GATEWAY_BASE_URL
 MCP_GATEWAY_BASE_URL
 POLICY_CENTER_BASE_URL
 ```
-
-请求头建议：
-
 
 ## 前端验收清单
 
