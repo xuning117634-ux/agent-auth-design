@@ -11,7 +11,7 @@
 ```text
 docs/
 ├── README.md
-├── 01/
+├── 01-architecture/
 │   └── 01-project-overall-architecture.md
 ├── 02-policy-center/
 │   ├── 01-policy-center-spec.md
@@ -39,7 +39,7 @@ docs/
 
 开发策略中心前按以下顺序读取：
 
-1. [项目总体架构](01/01-project-overall-architecture.md)：理解参与者、跨模块调用链和职责边界。
+1. [项目总体架构](01-architecture/01-project-overall-architecture.md)：理解参与者、跨模块调用链和职责边界。
 2. [策略中心功能规格](02-policy-center/01-policy-center-spec.md)：理解当前版本必须实现的行为。
 3. [策略中心 API 契约](02-policy-center/02-api-contract.md)：确认调用方、请求、响应和错误语义。
 4. [策略中心数据模型](02-policy-center/03-data-model.md)：确认数据库、Redis、事务和清理规则。
@@ -55,7 +55,7 @@ docs/
 
 | 内容 | 权威文档 |
 | --- | --- |
-| 系统参与者、调用主链、模块边界 | [项目总体架构](01/01-project-overall-architecture.md) |
+| 系统参与者、调用主链、模块边界 | [项目总体架构](01-architecture/01-project-overall-architecture.md) |
 | 授权决策、人在回路、失败行为 | [策略中心功能规格](02-policy-center/01-policy-center-spec.md) |
 | HTTP 接口字段、响应、错误码 | [策略中心 API 契约](02-policy-center/02-api-contract.md) |
 | 数据库表、Redis Key、事务和清理 | [策略中心数据模型](02-policy-center/03-data-model.md) |

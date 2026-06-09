@@ -29,9 +29,9 @@ flowchart LR
         agentGateway["Agent 网关<br/>请求接入与 Agent 路由<br/>tokenId 生成与 Cookie 隔离保存"]
         agent["Agent<br/>任务执行与 MCP 调用<br/>授权挂起与恢复"]
 
-        user -->|"业务请求"| backend
-        backend -->|"用户、对话、请求与 Cookie"| agentGateway
-        agentGateway -->|"请求与 tokenId"| agent
+        user -->|"1. 业务请求"| backend
+        backend -->|"2. 用户、对话、请求与 Cookie"| agentGateway
+        agentGateway -->|"3. 请求与 tokenId"| agent
     end
 
     subgraph mcpAccess["MCP 接入平面"]
@@ -54,19 +54,19 @@ flowchart LR
         direction LR
         mcpServer["MCP Server<br/>工具实现与协议适配"]
         businessApi["企业业务系统 / 工具 API"]
-        mcpServer -->|"受控调用"| businessApi
+        mcpServer -->|"10. 受控调用业务 API"| businessApi
     end
 
     subgraph operations["审计与可观测平面"]
         audit["统一审计与可观测性"]
     end
 
-    agent -->|"tokenId + 工具调用"| mcpGateway
-    mcpGateway -->|"tokenId + toolId"| policyCenter
-    policyCenter -->|"授权决策"| mcpGateway
-    mcpGateway -->|"允许后按 tokenId 获取 Cookie"| agentGateway
-    agentGateway -->|"返回关联 Cookie"| mcpGateway
-    mcpGateway -->|"注入 Cookie 并调用工具"| mcpServer
+    agent -->|"4. tokenId + 工具调用"| mcpGateway
+    mcpGateway -->|"5. tokenId + toolId"| policyCenter
+    policyCenter -->|"6. 授权决策"| mcpGateway
+    mcpGateway -->|"7. 允许后按 tokenId 获取 Cookie"| agentGateway
+    agentGateway -->|"8. 返回关联 Cookie"| mcpGateway
+    mcpGateway -->|"9. 注入 Cookie 并调用工具"| mcpServer
 
     agentGateway -.-> audit
     mcpGateway -.-> audit
