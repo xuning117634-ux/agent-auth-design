@@ -3,7 +3,7 @@
 > 状态：V1 草案，可作为接口实现基线
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-09
+> 最后更新：2026-06-10
 > 阅读顺序：02-02
 > 依赖：功能语义以 [策略中心功能规格](01-policy-center-spec.md) 为准。
 > 说明：V1 不增加 URL 版本前缀；成功响应按本文示例裸 JSON 返回，错误响应统一为 `{code,message,traceId}`。V1 暂不实现接口认证，生产接入前需要补充内部调用认证。
@@ -283,6 +283,42 @@ POST /internal/conversation-authorizations/cleanup
 - tokenId 不存在或已经清理时仍返回成功，`deletedGrantCount` 为 `0`。
 - 清理必须幂等，不使用 Redis `KEYS`。
 - Redis 操作失败返回 `503 + AUTHORIZATION_STORE_UNAVAILABLE`。
+
+## 外部清理当前对话授权
+
+```http
+POST /external/conversation-authorizations/cleanup
+```
+
+调用方：外部受信调用方、业务后端或未来第三方集成方。
+
+请求：
+
+```json
+{
+  "agentId": "agent-a",
+  "userId": "user-42",
+  "conversationId": "conversation-99"
+}
+```
+
+成功响应：
+
+```json
+{
+  "status": "CLEARED",
+  "deletedGrantCount": 2
+}
+```
+
+规则：
+
+- 外部调用方不需要理解 `tokenId` 拼接规则。
+- 策略中心内部构造 `tokenId = agentId:userId:conversationId` 后复用当前对话清理逻辑。
+- `agentId`、`userId`、`conversationId` 必须非空，且均不能包含分隔符 `:`。
+- 参数非法返回 `400 + INVALID_REQUEST`。
+- Redis 操作失败返回 `503 + AUTHORIZATION_STORE_UNAVAILABLE`。
+- V1 暂不实现接口认证；生产或第三方开放前必须接入认证或上游网关鉴权。
 
 ## 错误码
 

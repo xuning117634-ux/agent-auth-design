@@ -18,6 +18,22 @@ class TokenIdTest {
     }
 
     @Test
+    void createsTokenIdFromSeparateFields() {
+        TokenId tokenId = TokenId.of("agent-a", "user-42", "conversation-99");
+
+        assertThat(tokenId.raw()).isEqualTo("agent-a:user-42:conversation-99");
+        assertThat(tokenId.agentId()).isEqualTo("agent-a");
+        assertThat(tokenId.userId()).isEqualTo("user-42");
+        assertThat(tokenId.conversationId()).isEqualTo("conversation-99");
+    }
+
+    @Test
+    void rejectsFieldContainingSeparatorWhenCreatingTokenId() {
+        assertThatThrownBy(() -> TokenId.of("agent:a", "user-42", "conversation-99"))
+                .isInstanceOf(InvalidTokenIdException.class);
+    }
+
+    @Test
     void rejectsTokenIdWithWrongSegmentCount() {
         assertThatThrownBy(() -> TokenId.parse("agent-a:user-42"))
                 .isInstanceOf(InvalidTokenIdException.class);

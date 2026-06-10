@@ -61,6 +61,37 @@ class ConversationAuthorizationControllerTest {
                 .andExpect(jsonPath("$.deletedGrantCount").value(2));
     }
 
+    @Test
+    void cleansUpConversationAuthorizationFromExternalFields() throws Exception {
+        mockMvc.perform(post("/external/conversation-authorizations/cleanup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "agentId": "agent-a",
+                                  "userId": "user-42",
+                                  "conversationId": "conversation-99"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLEARED"))
+                .andExpect(jsonPath("$.deletedGrantCount").value(2));
+    }
+
+    @Test
+    void rejectsExternalCleanupFieldContainingSeparator() throws Exception {
+        mockMvc.perform(post("/external/conversation-authorizations/cleanup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "agentId": "agent:a",
+                                  "userId": "user-42",
+                                  "conversationId": "conversation-99"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
     private static final class FixedPolicyRepository implements ToolPolicyRepository {
         private final AuthMode authMode;
 
