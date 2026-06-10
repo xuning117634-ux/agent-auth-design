@@ -80,6 +80,15 @@ public class ConversationAuthorizationService {
 
     public CleanupResult cleanup(String tokenIdRaw) {
         TokenId tokenId = parseForRequest(tokenIdRaw);
+        return cleanup(tokenId);
+    }
+
+    public CleanupResult cleanup(String agentId, String userId, String conversationId) {
+        TokenId tokenId = tokenIdForRequest(agentId, userId, conversationId);
+        return cleanup(tokenId);
+    }
+
+    private CleanupResult cleanup(TokenId tokenId) {
         try {
             long deleted = authorizationStore.cleanup(tokenId.raw());
             audit("CONVERSATION_AUTHORIZATION_CLEANED", tokenId, null, Map.of("deletedGrantCount", Long.toString(deleted)));
@@ -94,6 +103,14 @@ public class ConversationAuthorizationService {
             return policyRepository.findByAgentIdAndToolId(agentId, toolId);
         } catch (RuntimeException exception) {
             throw new ApiException(ErrorCode.POLICY_STORE_UNAVAILABLE, "policy store is unavailable");
+        }
+    }
+
+    private TokenId tokenIdForRequest(String agentId, String userId, String conversationId) {
+        try {
+            return TokenId.of(agentId, userId, conversationId);
+        } catch (InvalidTokenIdException exception) {
+            throw new ApiException(ErrorCode.INVALID_REQUEST, exception.getMessage());
         }
     }
 

@@ -251,6 +251,21 @@ try {
     Assert-Equal "Authorized decision" $authorizedDecision.decision "ALLOW"
     Assert-Equal "Authorized reason" $authorizedDecision.reason "CONVERSATION_AUTHORIZED"
 
+    $externalCleanup = Invoke-PolicyApi -Method POST `
+        -Path "/external/conversation-authorizations/cleanup" `
+        -Body @{ agentId = $agentId; userId = $userId; conversationId = $conversationId }
+    Assert-Equal "External cleanup status" $externalCleanup.status "CLEARED"
+
+    $statusAfterExternalCleanup = Invoke-PolicyApi -Method POST `
+        -Path "/internal/conversation-authorizations/status" `
+        -Body @{ tokenId = $tokenId; toolId = $userAuthToolId }
+    Assert-Equal "Status after external cleanup" $statusAfterExternalCleanup.status "NOT_AUTHORIZED"
+
+    $authorizationAfterExternalCleanup = Invoke-PolicyApi -Method POST `
+        -Path "/internal/conversation-authorizations" `
+        -Body @{ tokenId = $tokenId; toolId = $userAuthToolId }
+    Assert-Equal "Authorization after external cleanup" $authorizationAfterExternalCleanup.status "AUTHORIZED"
+
     $invalidTokenDecision = Invoke-PolicyApi -Method POST `
         -Path "/internal/authorization-decisions" `
         -Body @{ tokenId = "$agentId`:$userId"; toolId = $userAuthToolId }

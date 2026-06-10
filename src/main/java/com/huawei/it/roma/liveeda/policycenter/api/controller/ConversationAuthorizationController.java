@@ -3,6 +3,7 @@ package com.huawei.it.roma.liveeda.policycenter.api.controller;
 import com.huawei.it.roma.liveeda.policycenter.api.dto.CleanupAuthorizationRequest;
 import com.huawei.it.roma.liveeda.policycenter.api.dto.ConversationAuthorizationRequest;
 import com.huawei.it.roma.liveeda.policycenter.api.dto.ConversationAuthorizationStatusResponse;
+import com.huawei.it.roma.liveeda.policycenter.api.dto.ExternalCleanupAuthorizationRequest;
 import com.huawei.it.roma.liveeda.policycenter.domain.AuthorizationStatus;
 import com.huawei.it.roma.liveeda.policycenter.service.CleanupResult;
 import com.huawei.it.roma.liveeda.policycenter.service.ConversationAuthorizationResult;
@@ -35,5 +36,10 @@ public class ConversationAuthorizationController {
     @PostMapping("/internal/conversation-authorizations/cleanup")
     CleanupResult cleanup(@Valid @RequestBody CleanupAuthorizationRequest request) {
         return service.cleanup(request.tokenId());
+    }
+
+    @PostMapping("/external/conversation-authorizations/cleanup")
+    CleanupResult cleanupExternal(@Valid @RequestBody ExternalCleanupAuthorizationRequest request) {
+        return service.cleanup(request.agentId(), request.userId(), request.conversationId());
     }
 }
