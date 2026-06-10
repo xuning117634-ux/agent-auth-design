@@ -3,7 +3,7 @@
 > 状态：V1 当前实现  
 > 适用对象：MCP 网关、管理面前端、业务后端、Agent 开发人员  
 > 服务地址示例：`http://localhost:18080`  
-> 最后更新：2026-06-09  
+> 最后更新：2026-06-10  
 > 权威契约：[策略中心 API 契约](02-api-contract.md)
 
 本文集中列出策略中心当前对外提供的全部业务接口及示例数据，供调用方联调使用。接口字段和错误语义以当前代码及 [API 契约](02-api-contract.md) 为准。
@@ -18,6 +18,7 @@
 | 4 | 业务后端 | `POST` | `/internal/conversation-authorizations` | 确认当前对话工具授权 |
 | 5 | Agent | `POST` | `/internal/conversation-authorizations/status` | 轮询当前对话授权状态 |
 | 6 | 业务后端 | `POST` | `/internal/conversation-authorizations/cleanup` | 清理当前对话全部工具授权 |
+| 7 | 外部受信调用方 | `POST` | `/external/conversation-authorizations/cleanup` | 按 agentId、userId、conversationId 清理当前对话全部工具授权 |
 
 V1 暂未实现接口认证。生产接入前必须由内部网络、上游网关或后续认证机制限制调用方，尤其不能将 `/internal/**` 直接暴露到公网。
 
@@ -447,7 +448,47 @@ X-Trace-Id: trace-20260609-006
 - 清理范围是该 `tokenId` 对应的全部工具授权。
 - Redis 异常返回 HTTP `503 + AUTHORIZATION_STORE_UNAVAILABLE`。
 
-## 9. 调用方处理要求
+## 9. 外部清理当前对话授权
+
+**调用方：** 外部受信调用方、业务后端或未来第三方集成方
+
+调用方不需要理解策略中心内部 `tokenId` 拼接规则，只需传递三个业务字段。策略中心内部会构造 canonical `tokenId = agentId:userId:conversationId`，并复用当前对话授权清理逻辑。
+
+```http
+POST /external/conversation-authorizations/cleanup
+```
+
+请求示例：
+
+```http
+POST http://localhost:18080/external/conversation-authorizations/cleanup
+Content-Type: application/json
+X-Trace-Id: trace-20260610-001
+
+{
+  "agentId": "agent-a",
+  "userId": "user-42",
+  "conversationId": "conversation-99"
+}
+```
+
+成功响应：
+
+```json
+{
+  "status": "CLEARED",
+  "deletedGrantCount": 2
+}
+```
+
+规则：
+
+- `agentId`、`userId`、`conversationId` 必须非空。
+- 三个字段都不能包含分隔符 `:`，否则返回 HTTP `400 + INVALID_REQUEST`。
+- 清理范围与内部 cleanup 一致，删除 `authz:{agentId:userId:conversationId}:*`。
+- V1 暂不做接口认证；生产或第三方开放前必须接入认证或上游网关鉴权。
+
+## 10. 调用方处理要求
 
 ### MCP 网关
 
@@ -474,7 +515,7 @@ X-Trace-Id: trace-20260609-006
 - 只向策略中心提交用户实际选择绑定的工具。
 - 保存成功后重新查询策略，刷新页面状态。
 
-## 10. 健康检查
+## 11. 健康检查
 
 健康检查不属于业务接口，但可用于部署和本地联调：
 

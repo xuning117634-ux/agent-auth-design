@@ -3,7 +3,7 @@
 > 状态：当前开发进度基线
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-09
+> 最后更新：2026-06-10
 > 阅读顺序：02-05
 > 文档职责：记录策略中心已经完成、正在开发和被阻塞的工作。功能要求以 [功能规格](01-policy-center-spec.md) 为准，接口要求以 [API 契约](02-api-contract.md) 为准。
 
@@ -12,7 +12,7 @@
 | 项目 | 当前状态 |
 | --- | --- |
 | 策略中心代码 | 进行中 |
-| 对外接口 | 5 / 5 已实现；0 / 5 满足完整完成标准 |
+| 对外接口 | 6 / 6 已实现；0 / 6 满足完整完成标准 |
 | 内部功能 | 5 / 13 已完成 |
 | 验收场景 | 运行时、管理保存、人在回路核心路径已有单元与 HTTP 测试覆盖；存储集成待验证 |
 | 当前里程碑 | M1 进行中 |
@@ -151,16 +151,34 @@ POST /internal/conversation-authorizations/cleanup
 | 自动化测试 | 已完成 | `ConversationAuthorizationControllerTest` |
 | API 文档一致性 | 已完成 | 不使用 Redis `KEYS` |
 
+### I06 外部清理当前对话授权
+
+```http
+POST /external/conversation-authorizations/cleanup
+```
+
+| 交付项 | 状态 | 实现证据 / 备注 |
+| --- | --- | --- |
+| 请求和响应模型 | 已完成 | `ExternalCleanupAuthorizationRequest`、`CleanupResult` |
+| 参数校验 | 已完成 | agentId/userId/conversationId 必填，且不能包含 `:` |
+| Controller 接入 | 已完成 | `ConversationAuthorizationController.cleanupExternal` |
+| 领域服务实现 | 已完成 | `ConversationAuthorizationService.cleanup(agentId, userId, conversationId)` |
+| 数据库或 Redis 集成 | 进行中 | 复用 `SCAN MATCH authz:{tokenId}:*`，待真实 Redis 验证 |
+| 错误码映射 | 已完成 | 参数非法返回 `INVALID_REQUEST`，Redis 清理失败返回 `AUTHORIZATION_STORE_UNAVAILABLE` |
+| 审计事件 | 已完成 | 复用 `CONVERSATION_AUTHORIZATION_CLEANED` 审计事件 |
+| 自动化测试 | 已完成 | `ConversationAuthorizationControllerTest`、`TokenIdTest` |
+| API 文档一致性 | 已完成 | 外部调用方无需理解 tokenId 拼接规则 |
+
 ## 阻塞项
 
 | 编号 | 待确认事项 | 阻塞范围 | 状态 | 解除条件 |
 | --- | --- | --- | --- | --- |
-| B01 | Spring Boot 及依赖版本 | F01-F13、I01-I05 | 已解除 | Spring Boot 3.4.9 + Java 21 |
+| B01 | Spring Boot 及依赖版本 | F01-F13、I01-I06 | 已解除 | Spring Boot 3.4.9 + Java 21 |
 | B02 | 数据库和建表方式 | F04-F06、F08、I01-I03 | 已解除 | MySQL + 手动执行 SQL |
-| B03 | Redis 客户端和部署模式 | F06-F11、I01、I03-I05 | 已解除 | Spring Data Redis + Lettuce，本地单机开发，生产保留 Cluster 配置 |
-| B04 | 内部接口认证方式 | F12、I01、I03-I05 | 已解除 | V1 暂不实现接口认证 |
+| B03 | Redis 客户端和部署模式 | F06-F11、I01、I03-I06 | 已解除 | Spring Data Redis + Lettuce，本地单机开发，生产保留 Cluster 配置 |
+| B04 | 内部接口认证方式 | F12、I01、I03-I06 | 已解除 | V1 暂不实现接口认证 |
 | B05 | 授权记录物理安全 TTL | F07-F10 | 已解除 | 授权 Key TTL 7 天 |
-| B06 | 对话结束与迟到授权并发处理 | F08、F10、I03、I05 | 已解除 | V1 信任业务后端不会迟到确认，不维护关闭状态 |
+| B06 | 对话结束与迟到授权并发处理 | F08、F10、I03、I05-I06 | 已解除 | V1 信任业务后端不会迟到确认，不维护关闭状态 |
 
 阻塞状态只影响表中列出的范围；不依赖该决策的设计和实现可以继续推进。
 
@@ -202,3 +220,4 @@ POST /internal/conversation-authorizations/cleanup
 | 2026-06-09 | 增加手动端到端验收脚本 | F13 保持进行中 | 脚本覆盖健康检查、策略保存、三态决策、授权确认、状态查询、清理和错误语义 |
 | 2026-06-09 | 完成策略中心 V1 后端初始实现 | F02、F03、F06、F11、F12 标记已完成；F01、F04、F05、F07-F10、F13 进行中 | `mvn test` 通过，24 tests，0 failures |
 | 2026-06-10 | 增强轻量日志与 TraceId | F12 保持已完成 | 新增 HTTP 请求入口/出口日志、响应头 `X-Trace-Id`、异常出口日志和控制台 traceId pattern；`mvn test` 通过，28 tests，0 failures |
+| 2026-06-10 | 新增外部对话授权清理接口 | I06 已实现，F10 保持进行中 | 新增 `/external/conversation-authorizations/cleanup`，外部调用方传 `agentId + userId + conversationId`；待真实 Redis 验证 |
