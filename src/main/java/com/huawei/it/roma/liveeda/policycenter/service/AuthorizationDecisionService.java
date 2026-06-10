@@ -10,6 +10,7 @@ import com.huawei.it.roma.liveeda.policycenter.domain.TokenId;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolPolicy;
 import com.huawei.it.roma.liveeda.policycenter.repository.ToolPolicyRepository;
 import com.huawei.it.roma.liveeda.policycenter.store.ConversationAuthorizationStore;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class AuthorizationDecisionService {
 
     private final ToolPolicyRepository toolPolicyRepository;
@@ -53,6 +55,14 @@ public class AuthorizationDecisionService {
         try {
             policy = toolPolicyRepository.findByAgentIdAndToolId(tokenId.agentId(), toolId);
         } catch (RuntimeException exception) {
+            log.warn("AUTHORIZATION_DECISION_FAIL_CLOSED tokenId={} agentId={} userId={} conversationId={} toolId={} reason={}",
+                    tokenId.raw(),
+                    tokenId.agentId(),
+                    tokenId.userId(),
+                    tokenId.conversationId(),
+                    toolId,
+                    DecisionReason.POLICY_STORE_UNAVAILABLE,
+                    exception);
             return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
                     AuthorizationDecision.deny(DecisionReason.POLICY_STORE_UNAVAILABLE));
         }
@@ -72,6 +82,14 @@ public class AuthorizationDecisionService {
         try {
             authorized = authorizationStore.exists(tokenId.raw(), toolId);
         } catch (RuntimeException exception) {
+            log.warn("AUTHORIZATION_DECISION_FAIL_CLOSED tokenId={} agentId={} userId={} conversationId={} toolId={} reason={}",
+                    tokenId.raw(),
+                    tokenId.agentId(),
+                    tokenId.userId(),
+                    tokenId.conversationId(),
+                    toolId,
+                    DecisionReason.AUTHORIZATION_STORE_UNAVAILABLE,
+                    exception);
             return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
                     AuthorizationDecision.deny(DecisionReason.AUTHORIZATION_STORE_UNAVAILABLE));
         }

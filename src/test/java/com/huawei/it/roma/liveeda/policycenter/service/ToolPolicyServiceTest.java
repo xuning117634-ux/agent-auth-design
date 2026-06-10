@@ -1,6 +1,7 @@
 package com.huawei.it.roma.liveeda.policycenter.service;
 
 import com.huawei.it.roma.liveeda.policycenter.api.ApiException;
+import com.huawei.it.roma.liveeda.policycenter.api.ErrorCode;
 import com.huawei.it.roma.liveeda.policycenter.audit.AuditLogger;
 import com.huawei.it.roma.liveeda.policycenter.domain.AuthMode;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolPolicy;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ToolPolicyServiceTest {
@@ -51,6 +53,36 @@ class ToolPolicyServiceTest {
         assertThat(auditLogger.events.getFirst()).containsEntry("toolCount", "1");
     }
 
+    @Test
+    void listPoliciesPreservesStoreFailureCauseAndContext() {
+        ToolPolicyService service = new ToolPolicyService(FailingToolPolicyRepository.listFailure());
+
+        Throwable thrown = catchThrowable(() -> service.listPolicies("agent-a"));
+
+        assertStoreFailure(thrown, "database list unavailable", "LIST_TOOL_POLICIES");
+    }
+
+    @Test
+    void replacePoliciesPreservesStoreFailureCauseAndContext() {
+        ToolPolicyService service = new ToolPolicyService(FailingToolPolicyRepository.replaceFailure());
+
+        Throwable thrown = catchThrowable(() -> service.replacePolicies(
+                "agent-a",
+                List.of(new ToolPolicyUpdate("tool-x", AuthMode.USER_AUTH_REQUIRED))));
+
+        assertStoreFailure(thrown, "database replace unavailable", "REPLACE_TOOL_POLICIES");
+    }
+
+    private void assertStoreFailure(Throwable thrown, String causeMessage, String operation) {
+        assertThat(thrown).isInstanceOf(ApiException.class);
+        ApiException exception = (ApiException) thrown;
+        assertThat(exception.code()).isEqualTo(ErrorCode.POLICY_STORE_UNAVAILABLE);
+        assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class)
+                .hasMessage(causeMessage);
+        assertThat(exception.context()).containsEntry("operation", operation)
+                .containsEntry("agentId", "agent-a");
+    }
+
     private static final class CapturingToolPolicyRepository implements ToolPolicyRepository {
         private List<ToolPolicy> saved = new ArrayList<>();
 
@@ -67,6 +99,44 @@ class ToolPolicyServiceTest {
         @Override
         public void replaceAll(String agentId, List<ToolPolicy> policies) {
             saved = new ArrayList<>(policies);
+        }
+    }
+
+    private static final class FailingToolPolicyRepository implements ToolPolicyRepository {
+        private final boolean failList;
+        private final boolean failReplace;
+
+        private FailingToolPolicyRepository(boolean failList, boolean failReplace) {
+            this.failList = failList;
+            this.failReplace = failReplace;
+        }
+
+        static FailingToolPolicyRepository listFailure() {
+            return new FailingToolPolicyRepository(true, false);
+        }
+
+        static FailingToolPolicyRepository replaceFailure() {
+            return new FailingToolPolicyRepository(false, true);
+        }
+
+        @Override
+        public Optional<ToolPolicy> findByAgentIdAndToolId(String agentId, String toolId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<ToolPolicy> findByAgentId(String agentId) {
+            if (failList) {
+                throw new IllegalStateException("database list unavailable");
+            }
+            return List.of();
+        }
+
+        @Override
+        public void replaceAll(String agentId, List<ToolPolicy> policies) {
+            if (failReplace) {
+                throw new IllegalStateException("database replace unavailable");
+            }
         }
     }
 
