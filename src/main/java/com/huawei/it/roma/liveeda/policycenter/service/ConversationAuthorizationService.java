@@ -49,7 +49,7 @@ public class ConversationAuthorizationService {
 
     public ConversationAuthorizationResult authorize(String tokenIdRaw, String toolId) {
         TokenId tokenId = parseForRequest(tokenIdRaw);
-        ToolPolicy policy = findPolicy(tokenId.agentId(), toolId)
+        ToolPolicy policy = findPolicy(tokenId, toolId)
                 .orElseThrow(() -> new ApiException(ErrorCode.TOOL_NOT_BOUND, "tool is not bound"));
 
         if (policy.effectiveAuthMode() == AuthMode.NO_AUTH_REQUIRED) {
@@ -59,7 +59,11 @@ public class ConversationAuthorizationService {
         try {
             authorizationStore.authorize(tokenId.raw(), toolId, authorizationTtl);
         } catch (RuntimeException exception) {
-            throw new ApiException(ErrorCode.AUTHORIZATION_STORE_UNAVAILABLE, "authorization store is unavailable");
+            throw authorizationStoreUnavailable(
+                    exception,
+                    "AUTHORIZE_CONVERSATION_TOOL",
+                    tokenId,
+                    toolId);
         }
         audit("CONVERSATION_AUTHORIZED", tokenId, toolId, Map.of("status", AuthorizationStatus.AUTHORIZED.name()));
         return new ConversationAuthorizationResult(AuthorizationStatus.AUTHORIZED, tokenId.raw(), toolId);
@@ -74,7 +78,11 @@ public class ConversationAuthorizationService {
             audit("AUTHORIZATION_STATUS_QUERIED", tokenId, toolId, Map.of("status", status.name()));
             return status;
         } catch (RuntimeException exception) {
-            throw new ApiException(ErrorCode.AUTHORIZATION_STORE_UNAVAILABLE, "authorization store is unavailable");
+            throw authorizationStoreUnavailable(
+                    exception,
+                    "QUERY_CONVERSATION_AUTHORIZATION_STATUS",
+                    tokenId,
+                    toolId);
         }
     }
 
@@ -94,16 +102,49 @@ public class ConversationAuthorizationService {
             audit("CONVERSATION_AUTHORIZATION_CLEANED", tokenId, null, Map.of("deletedGrantCount", Long.toString(deleted)));
             return new CleanupResult("CLEARED", deleted);
         } catch (RuntimeException exception) {
-            throw new ApiException(ErrorCode.AUTHORIZATION_STORE_UNAVAILABLE, "authorization store is unavailable");
+            throw authorizationStoreUnavailable(
+                    exception,
+                    "CLEANUP_CONVERSATION_AUTHORIZATIONS",
+                    tokenId,
+                    null);
         }
     }
 
-    private Optional<ToolPolicy> findPolicy(String agentId, String toolId) {
+    private Optional<ToolPolicy> findPolicy(TokenId tokenId, String toolId) {
         try {
-            return policyRepository.findByAgentIdAndToolId(agentId, toolId);
+            return policyRepository.findByAgentIdAndToolId(tokenId.agentId(), toolId);
         } catch (RuntimeException exception) {
-            throw new ApiException(ErrorCode.POLICY_STORE_UNAVAILABLE, "policy store is unavailable");
+            throw new ApiException(
+                    ErrorCode.POLICY_STORE_UNAVAILABLE,
+                    "policy store is unavailable",
+                    exception,
+                    context("FIND_TOOL_POLICY", tokenId, toolId));
         }
+    }
+
+    private ApiException authorizationStoreUnavailable(
+            RuntimeException exception,
+            String operation,
+            TokenId tokenId,
+            String toolId) {
+        return new ApiException(
+                ErrorCode.AUTHORIZATION_STORE_UNAVAILABLE,
+                "authorization store is unavailable",
+                exception,
+                context(operation, tokenId, toolId));
+    }
+
+    private Map<String, String> context(String operation, TokenId tokenId, String toolId) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("operation", operation);
+        fields.put("tokenId", tokenId.raw());
+        fields.put("agentId", tokenId.agentId());
+        fields.put("userId", tokenId.userId());
+        fields.put("conversationId", tokenId.conversationId());
+        if (toolId != null) {
+            fields.put("toolId", toolId);
+        }
+        return fields;
     }
 
     private TokenId tokenIdForRequest(String agentId, String userId, String conversationId) {
