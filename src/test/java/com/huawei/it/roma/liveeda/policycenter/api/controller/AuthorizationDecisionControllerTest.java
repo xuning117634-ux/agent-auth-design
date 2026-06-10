@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
@@ -27,6 +28,7 @@ class AuthorizationDecisionControllerTest {
             new FixedAuthorizationStore(false));
     private final MockMvc mockMvc = standaloneSetup(new AuthorizationDecisionController(service))
             .setControllerAdvice(new GlobalExceptionHandler())
+            .addFilters(new com.huawei.it.roma.liveeda.policycenter.api.filter.TraceIdFilter())
             .setMessageConverters(MockMvcSupport.jsonConverter())
             .build();
 
@@ -58,7 +60,23 @@ class AuthorizationDecisionControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
-                .andExpect(jsonPath("$.traceId").value("trace-123"));
+                .andExpect(jsonPath("$.traceId").value("trace-123"))
+                .andExpect(header().string("X-Trace-Id", "trace-123"));
+    }
+
+    @Test
+    void invalidRequestWithoutTraceIdGeneratesResponseHeader() throws Exception {
+        mockMvc.perform(post("/internal/authorization-decisions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tokenId": "agent-a:user-42:conversation-99",
+                                  "toolId": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(header().exists("X-Trace-Id"));
     }
 
     private static final class FixedPolicyRepository implements ToolPolicyRepository {
