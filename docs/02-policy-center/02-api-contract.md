@@ -3,7 +3,7 @@
 > 状态：V1 草案，可作为接口实现基线
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-10
+> 最后更新：2026-06-11
 > 阅读顺序：02-02
 > 依赖：功能语义以 [策略中心功能规格](01-policy-center-spec.md) 为准。
 > 说明：V1 不增加 URL 版本前缀；成功响应按本文示例裸 JSON 返回，错误响应统一为 `{code,message,traceId}`。V1 暂不实现接口认证，生产接入前需要补充内部调用认证。
@@ -78,6 +78,7 @@ POST /internal/authorization-decisions
 | `ALLOW` | `CONVERSATION_AUTHORIZED` |
 | `AUTHORIZATION_REQUIRED` | `USER_AUTHORIZATION_REQUIRED` |
 | `DENY` | `TOOL_NOT_BOUND` |
+| `DENY` | `USER_TOOL_ACCESS_DENIED` |
 | `DENY` | `INVALID_TOKEN_ID` |
 | `DENY` | `POLICY_STORE_UNAVAILABLE` |
 | `DENY` | `AUTHORIZATION_STORE_UNAVAILABLE` |
@@ -88,6 +89,8 @@ HTTP 语义：
 - `tokenId` 格式非法属于授权结果，返回 `200 + DENY/INVALID_TOKEN_ID`。
 - 字段缺失、空白或 JSON 非法返回 `400 + INVALID_REQUEST`。
 - 未处理的服务错误返回 `500 + INTERNAL_ERROR`，调用方必须终止工具调用。
+- 目标 Tool 未配置人员策略时按 `accessScope = PUBLIC`，跳过人员限制。
+- 目标 Tool 为 `RESTRICTED` 且当前 userId 不在白名单时返回 `DENY + USER_TOOL_ACCESS_DENIED`。
 
 ## 查询 Agent 当前工具策略
 
@@ -319,6 +322,189 @@ POST /external/conversation-authorizations/cleanup
 - 参数非法返回 `400 + INVALID_REQUEST`。
 - Redis 操作失败返回 `503 + AUTHORIZATION_STORE_UNAVAILABLE`。
 - V1 暂不实现接口认证；生产或第三方开放前必须接入认证或上游网关鉴权。
+
+## 查询 Agent 当前人员策略
+
+```http
+GET /admin/agents/{agentId}/user-policies
+```
+
+调用方：策略中心管理端。
+
+成功响应：
+
+```json
+{
+  "agentId": "agent-a",
+  "accessScope": "RESTRICTED",
+  "agentUsers": [
+    {
+      "userId": "user-42",
+      "updatedAt": "2026-06-10T10:00:00Z"
+    }
+  ],
+  "tools": [
+    {
+      "toolId": "tool-a",
+      "accessScope": "RESTRICTED",
+      "users": [
+        {
+          "userId": "user-42",
+          "updatedAt": "2026-06-10T10:00:00Z"
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-06-10T10:00:00Z"
+}
+```
+
+规则：
+
+- Agent 未配置人员策略时返回 `accessScope = PUBLIC` 和空白名单。
+- `tools` 返回当前 Agent 的全部已绑定工具；未配置的 Tool 返回 `accessScope = PUBLIC` 和空白名单。
+- 历史残留的未绑定工具人员策略不得返回给管理面。
+
+## 管理员整份保存人员策略
+
+```http
+PUT /admin/agents/{agentId}/user-policies
+```
+
+调用方：策略中心管理端。
+
+请求：
+
+```json
+{
+  "accessScope": "RESTRICTED",
+  "agentUsers": [
+    {
+      "userId": "user-42"
+    }
+  ],
+  "tools": [
+    {
+      "toolId": "tool-a",
+      "accessScope": "RESTRICTED",
+      "users": [
+        {
+          "userId": "user-42"
+        }
+      ]
+    }
+  ]
+}
+```
+
+成功响应：
+
+```json
+{
+  "agentId": "agent-a",
+  "agentUserRuleCount": 1,
+  "toolUserRuleCount": 1,
+  "updatedAt": "2026-06-10T10:00:00Z"
+}
+```
+
+规则：
+
+- 请求体表示该 Agent 保存后的完整人员策略，不是增量更新。
+- Agent 和 Tool 的 `accessScope` 缺失或为 `null` 时按 `PUBLIC` 保存。
+- `agentUsers: []` 表示清空 Agent 级用户规则。
+- `tools: []` 表示全部 Tool 恢复 `PUBLIC` 并清空 Tool 白名单。
+- 请求中未出现的 Tool 恢复为 `PUBLIC` 并清空其白名单。
+- `PUBLIC` 状态允许保存白名单，但决策时忽略。
+- `tools.toolId` 必须属于该 Agent 当前已绑定工具，否则返回 `409 + TOOL_NOT_BOUND`。
+- `agentUsers[].userId` 和 `tools[].users[].userId` 既可填写单个工号，也可填写批量工号；批量值支持英文/中文逗号、英文/中文分号和换行分隔。
+- 批量工号会自动去除首尾空白、过滤空项并按首次出现顺序去重；拆分后没有有效工号时返回 `400 + INVALID_REQUEST`。
+- 同一请求中的重复工号自动去重，重复 `toolId` 返回 `400 + INVALID_REQUEST`。
+- 保存操作在单个数据库事务内完成。
+
+## 查询用户是否可访问 Agent
+
+```http
+POST /internal/agent-access-decisions
+```
+
+请求：
+
+```json
+{
+  "agentId": "agent-a",
+  "userId": "user-42"
+}
+```
+
+成功响应：
+
+```json
+{
+  "agentId": "agent-a",
+  "userId": "user-42",
+  "allowed": true,
+  "reason": "AGENT_USER_WHITELISTED"
+}
+```
+
+规则：
+
+- 该接口供业务后端和业务 Agent 在触发 Agent 前调用。
+- Agent 为 `PUBLIC` 时允许所有用户；为 `RESTRICTED` 时仅允许白名单用户。
+- 该接口不参与工具调用授权决策。
+
+## 查询用户可访问的 Agent
+
+```http
+GET /internal/users/{userId}/agents
+```
+
+成功响应：
+
+```json
+{
+  "userId": "user-42",
+  "agents": [
+    {
+      "agentId": "agent-a",
+      "reason": "AGENT_USER_WHITELISTED"
+    }
+  ]
+}
+```
+
+规则：
+
+- 返回范围限定为策略中心已知 Agent。
+- 策略中心已知 Agent 指存在工具策略或人员策略记录的 Agent。
+
+## 查询用户可访问的工具
+
+```http
+GET /internal/agents/{agentId}/users/{userId}/tools
+```
+
+成功响应：
+
+```json
+{
+  "agentId": "agent-a",
+  "userId": "user-42",
+  "tools": [
+    {
+      "toolId": "tool-a",
+      "authMode": "NO_AUTH_REQUIRED"
+    }
+  ]
+}
+```
+
+规则：
+
+- 只返回当前 Agent 已绑定工具，不返回工具名称、描述或状态。
+- 返回 PUBLIC Tool 和当前用户在白名单中的 RESTRICTED Tool。
+- 该接口不检查用户是否可访问 Agent，也不检查 Redis 当前对话授权。
 
 ## 错误码
 

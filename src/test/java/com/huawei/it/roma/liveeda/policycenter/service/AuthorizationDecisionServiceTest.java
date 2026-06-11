@@ -10,6 +10,7 @@ import com.huawei.it.roma.liveeda.policycenter.domain.Decision;
 import com.huawei.it.roma.liveeda.policycenter.domain.DecisionReason;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolPolicy;
 import com.huawei.it.roma.liveeda.policycenter.audit.AuditLogger;
+import com.huawei.it.roma.liveeda.policycenter.audit.NoopAuditLogger;
 import com.huawei.it.roma.liveeda.policycenter.repository.ToolPolicyRepository;
 import com.huawei.it.roma.liveeda.policycenter.store.ConversationAuthorizationStore;
 import org.junit.jupiter.api.Test;
@@ -73,6 +74,74 @@ class AuthorizationDecisionServiceTest {
 
         assertThat(decision.decision()).isEqualTo(Decision.AUTHORIZATION_REQUIRED);
         assertThat(decision.reason()).isEqualTo(DecisionReason.USER_AUTHORIZATION_REQUIRED);
+    }
+
+    @Test
+    void skipsToolUserPolicyWhenEvaluatorAllowsTool() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.NO_AUTH_REQUIRED);
+        FakeAuthorizationStore grants = new FakeAuthorizationStore(false);
+        AuthorizationDecisionService service = new AuthorizationDecisionService(
+                policies,
+                grants,
+                (agentId, toolId, userId) -> true,
+                NoopAuditLogger.INSTANCE);
+
+        AuthorizationDecision decision = service.decide("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(decision.decision()).isEqualTo(Decision.ALLOW);
+        assertThat(decision.reason()).isEqualTo(DecisionReason.NO_AUTH_REQUIRED);
+    }
+
+    @Test
+    void deniesWhenToolUserPolicyRejectsUser() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.NO_AUTH_REQUIRED);
+        FakeAuthorizationStore grants = new FakeAuthorizationStore(false);
+        AuthorizationDecisionService service = new AuthorizationDecisionService(
+                policies,
+                grants,
+                (agentId, toolId, userId) -> false,
+                NoopAuditLogger.INSTANCE);
+
+        AuthorizationDecision decision = service.decide("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(decision.decision()).isEqualTo(Decision.DENY);
+        assertThat(decision.reason()).isEqualTo(DecisionReason.USER_TOOL_ACCESS_DENIED);
+        assertThat(grants.existsCalls).isZero();
+    }
+
+    @Test
+    void toolUserPolicyAllowsUserBeforeRedisAuthorizationCheck() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.USER_AUTH_REQUIRED);
+        FakeAuthorizationStore grants = new FakeAuthorizationStore(false);
+        AuthorizationDecisionService service = new AuthorizationDecisionService(
+                policies,
+                grants,
+                (agentId, toolId, userId) -> true,
+                NoopAuditLogger.INSTANCE);
+
+        AuthorizationDecision decision = service.decide("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(decision.decision()).isEqualTo(Decision.AUTHORIZATION_REQUIRED);
+        assertThat(decision.reason()).isEqualTo(DecisionReason.USER_AUTHORIZATION_REQUIRED);
+        assertThat(grants.existsCalls).isOne();
+    }
+
+    @Test
+    void toolUserPolicyFailureFailsClosedAsPolicyStoreUnavailable() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.NO_AUTH_REQUIRED);
+        FakeAuthorizationStore grants = new FakeAuthorizationStore(false);
+        AuthorizationDecisionService service = new AuthorizationDecisionService(
+                policies,
+                grants,
+                (agentId, toolId, userId) -> {
+                    throw new IllegalStateException("database unavailable");
+                },
+                NoopAuditLogger.INSTANCE);
+
+        AuthorizationDecision decision = service.decide("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(decision.decision()).isEqualTo(Decision.DENY);
+        assertThat(decision.reason()).isEqualTo(DecisionReason.POLICY_STORE_UNAVAILABLE);
     }
 
     @Test
