@@ -21,11 +21,7 @@
 2. 业务 Agent 负责执行任务、调用 MCP 网关、未授权时保存检查点并轮询授权状态。
 3. Cookie、长期 Token、业务密钥等原始凭证不进入业务 Agent，只有 MCP 网关在策略中心明确 `ALLOW` 后，才能按 `tokenId` 向 Agent 网关获取 Cookie 并注入 MCP Server 调用。
 
-`tokenId` 由 Agent 网关生成，当前格式为：
-
-```text
-tokenId = agentId:userId:conversationId
-```
+`tokenId` 由 Agent 网关生成
 
 业务 Agent 只透传 `tokenId`，不要自行生成、修改或解析。业务后端在对话结束清理时，如果不希望理解 `tokenId` 拼接规则，可以使用外部清理接口传递 `agentId + userId + conversationId`。
 
