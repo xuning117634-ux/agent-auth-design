@@ -3,7 +3,7 @@
 > 状态：当前文档入口
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-09
+> 最后更新：2026-06-11
 > 阅读顺序：00（文档入口）
 
 ## 目录顺序
@@ -29,6 +29,8 @@ docs/
 │   └── ADR-003-agent-tool-policy-source.md
 ├── 04-future/
 │   └── 01-future-authorization-evolution.md
+├── 05-integration/
+│   └── 01-business-backend-agent-integration-guide.md
 └── 99-assets/
     └── agent-auth-mcp-architecture.png
 ```
@@ -37,7 +39,7 @@ docs/
 
 ## 阅读顺序
 
-开发策略中心前按以下顺序读取：
+项目开发和业务接入前按以下顺序读取：
 
 1. [项目总体架构](01-architecture/01-project-overall-architecture.md)：理解参与者、跨模块调用链和职责边界。
 2. [策略中心功能规格](02-policy-center/01-policy-center-spec.md)：理解当前版本必须实现的行为。
@@ -47,7 +49,8 @@ docs/
 6. [策略中心开发进度](02-policy-center/05-development-progress.md)：确认已经实现、正在开发和被阻塞的工作。
 7. [管理面前端接口](02-policy-center/06-admin-frontend-api.md)：交付前端同事联调管理页面。
 8. [策略中心对外接口参考](02-policy-center/08-external-api-reference.md)：按调用方查看当前全部接口及可直接联调的示例数据。
-9. [架构决策记录](03-decisions/README.md)：了解已经确认、不应在编码时随意改变的设计。
+9. [业务后端与业务 Agent 接入指南](05-integration/01-business-backend-agent-integration-guide.md)：交付业务后端和业务 Agent 团队接入安全方案。
+10. [架构决策记录](03-decisions/README.md)：了解已经确认、不应在编码时随意改变的设计。
 
 [未来授权能力演进](04-future/01-future-authorization-evolution.md) 只用于评估扩展性，不属于 V1 实现和验收范围。
 
@@ -63,6 +66,7 @@ docs/
 | 当前实现状态、阻塞项和里程碑 | [策略中心开发进度](02-policy-center/05-development-progress.md) |
 | 管理面前端页面联调接口 | [管理面前端接口](02-policy-center/06-admin-frontend-api.md) |
 | 策略中心全部对外接口与联调示例 | [策略中心对外接口参考](02-policy-center/08-external-api-reference.md) |
+| 业务后端与业务 Agent 接入安全方案 | [业务后端与业务 Agent 接入指南](05-integration/01-business-backend-agent-integration-guide.md) |
 | 已接受的重要设计选择 | [架构决策记录](03-decisions/README.md) |
 | 未进入当前版本的方案 | [未来授权能力演进](04-future/01-future-authorization-evolution.md) |
 
@@ -88,7 +92,7 @@ V1 包含：
 - 当前对话用户授权、轮询查询和对话结束清理。
 - 数据库和 Redis 异常时默认拒绝。
 
-V1 不包含：
+V1 暂不提供，相关能力开发中：
 
 - 跨对话 7 天或 30 天授权。
 - 用户授权列表和主动撤销。

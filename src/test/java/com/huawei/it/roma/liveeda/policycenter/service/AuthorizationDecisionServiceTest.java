@@ -1,5 +1,9 @@
 package com.huawei.it.roma.liveeda.policycenter.service;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.huawei.it.roma.liveeda.policycenter.domain.AuthMode;
 import com.huawei.it.roma.liveeda.policycenter.domain.AuthorizationDecision;
 import com.huawei.it.roma.liveeda.policycenter.domain.Decision;
@@ -9,6 +13,7 @@ import com.huawei.it.roma.liveeda.policycenter.audit.AuditLogger;
 import com.huawei.it.roma.liveeda.policycenter.repository.ToolPolicyRepository;
 import com.huawei.it.roma.liveeda.policycenter.store.ConversationAuthorizationStore;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -97,6 +102,28 @@ class AuthorizationDecisionServiceTest {
     }
 
     @Test
+    void logsOriginalExceptionWhenPolicyStoreFailsClosed() {
+        FakePolicyRepository policies = FakePolicyRepository.failing();
+        FakeAuthorizationStore grants = new FakeAuthorizationStore(true);
+        AuthorizationDecisionService service = new AuthorizationDecisionService(policies, grants);
+        ListAppender<ILoggingEvent> appender = attachLogAppender();
+
+        service.decide("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(appender.list).anySatisfy(event -> {
+            assertThat(event.getLevel()).isEqualTo(Level.WARN);
+            assertThat(event.getFormattedMessage()).contains(
+                    "AUTHORIZATION_DECISION_FAIL_CLOSED",
+                    "tokenId=agent-a:user-42:conversation-99",
+                    "agentId=agent-a",
+                    "toolId=tool-x",
+                    "reason=POLICY_STORE_UNAVAILABLE");
+            assertThat(event.getThrowableProxy()).isNotNull();
+            assertThat(event.getThrowableProxy().getMessage()).isEqualTo("database unavailable");
+        });
+    }
+
+    @Test
     void redisFailureFailsClosed() {
         FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.USER_AUTH_REQUIRED);
         FakeAuthorizationStore grants = FakeAuthorizationStore.failing();
@@ -106,6 +133,28 @@ class AuthorizationDecisionServiceTest {
 
         assertThat(decision.decision()).isEqualTo(Decision.DENY);
         assertThat(decision.reason()).isEqualTo(DecisionReason.AUTHORIZATION_STORE_UNAVAILABLE);
+    }
+
+    @Test
+    void logsOriginalExceptionWhenAuthorizationStoreFailsClosed() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.USER_AUTH_REQUIRED);
+        FakeAuthorizationStore grants = FakeAuthorizationStore.failing();
+        AuthorizationDecisionService service = new AuthorizationDecisionService(policies, grants);
+        ListAppender<ILoggingEvent> appender = attachLogAppender();
+
+        service.decide("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(appender.list).anySatisfy(event -> {
+            assertThat(event.getLevel()).isEqualTo(Level.WARN);
+            assertThat(event.getFormattedMessage()).contains(
+                    "AUTHORIZATION_DECISION_FAIL_CLOSED",
+                    "tokenId=agent-a:user-42:conversation-99",
+                    "agentId=agent-a",
+                    "toolId=tool-x",
+                    "reason=AUTHORIZATION_STORE_UNAVAILABLE");
+            assertThat(event.getThrowableProxy()).isNotNull();
+            assertThat(event.getThrowableProxy().getMessage()).isEqualTo("redis unavailable");
+        });
     }
 
     @Test
@@ -213,5 +262,13 @@ class AuthorizationDecisionServiceTest {
         public void record(String eventType, Map<String, String> fields) {
             events.add(fields);
         }
+    }
+
+    private ListAppender<ILoggingEvent> attachLogAppender() {
+        Logger logger = (Logger) LoggerFactory.getLogger(AuthorizationDecisionService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        return appender;
     }
 }

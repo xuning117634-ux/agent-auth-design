@@ -35,6 +35,8 @@ X-Trace-Id: trace-20260609-001
 - 未传递 `X-Trace-Id` 时，策略中心会自动生成 UUID。
 - 策略中心会在响应头回写最终使用的 `X-Trace-Id`。
 - 控制台日志会输出 `traceId`，并记录 `HTTP_REQUEST_START`、`HTTP_REQUEST_END`、授权决策和授权确认等核心事件。
+- 策略库、Redis 等底层存储异常会输出 WARN 日志和原始异常堆栈；授权决策 fail-closed 会额外输出 `AUTHORIZATION_DECISION_FAIL_CLOSED`。
+- 普通业务拒绝或轮询未授权不会额外输出异常日志，避免日志过于频繁。
 - 成功响应直接返回业务 JSON，不使用统一外层包装。
 
 ### 2.2 tokenId 格式

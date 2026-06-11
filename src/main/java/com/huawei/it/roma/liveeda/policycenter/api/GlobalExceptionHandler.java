@@ -20,11 +20,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ErrorResponse> handleApiException(ApiException exception, HttpServletRequest request) {
         String traceId = traceId(request);
-        log.warn("API_EXCEPTION traceId={} path={} errorCode={} message={}",
-                traceId,
-                request.getRequestURI(),
-                exception.code().name(),
-                exception.getMessage());
+        if (exception.getCause() != null) {
+            log.warn("API_EXCEPTION traceId={} path={} errorCode={} message={} context={}",
+                    traceId,
+                    request.getRequestURI(),
+                    exception.code().name(),
+                    exception.getMessage(),
+                    exception.context(),
+                    exception);
+        } else {
+            log.warn("API_EXCEPTION traceId={} path={} errorCode={} message={}",
+                    traceId,
+                    request.getRequestURI(),
+                    exception.code().name(),
+                    exception.getMessage());
+        }
         return ResponseEntity.status(exception.code().status())
                 .body(new ErrorResponse(exception.code().name(), exception.getMessage(), traceId));
     }

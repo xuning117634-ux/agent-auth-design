@@ -45,7 +45,11 @@ public class ToolPolicyService {
         try {
             return repository.findByAgentId(agentId);
         } catch (RuntimeException exception) {
-            throw new ApiException(ErrorCode.POLICY_STORE_UNAVAILABLE, "policy store is unavailable");
+            throw new ApiException(
+                    ErrorCode.POLICY_STORE_UNAVAILABLE,
+                    "policy store is unavailable",
+                    exception,
+                    Map.of("operation", "LIST_TOOL_POLICIES", "agentId", agentId));
         }
     }
 
@@ -69,7 +73,11 @@ public class ToolPolicyService {
         try {
             repository.replaceAll(agentId, policies);
         } catch (RuntimeException exception) {
-            throw new ApiException(ErrorCode.POLICY_STORE_UNAVAILABLE, "policy store is unavailable");
+            throw new ApiException(
+                    ErrorCode.POLICY_STORE_UNAVAILABLE,
+                    "policy store is unavailable",
+                    exception,
+                    Map.of("operation", "REPLACE_TOOL_POLICIES", "agentId", agentId));
         }
         auditReplacement(agentId, policies.size());
         return new ToolPolicySaveResult(agentId, policies.size(), Instant.now(clock));
