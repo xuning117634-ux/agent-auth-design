@@ -2,7 +2,7 @@
 
 > 状态：V1 当前实现
 > 适用版本：V1
-> 最后更新：2026-06-11
+> 最后更新：2026-06-12
 > 阅读顺序：02-07
 
 ## 背景与边界
@@ -102,6 +102,12 @@ UNIQUE(agent_id, tool_id, user_id)
 ```
 
 策略中心不复制用户目录、Agent 目录或工具详情。
+
+### 数据库脚本
+
+- 新环境初始化：执行 [`sql/policy-center-schema.sql`](../../sql/policy-center-schema.sql)，一次创建基础工具策略表和人员策略表。
+- 已执行过基础策略中心 SQL 的存量环境：仅执行 [`sql/user-policy-schema.sql`](../../sql/user-policy-schema.sql)，增量创建本方案新增的 4 张人员策略表。
+- 增量脚本使用 `CREATE TABLE IF NOT EXISTS`，可重复执行，不修改 `agent_tool_policy` 及其存量数据。
 
 ## 管理端接口
 

@@ -79,7 +79,7 @@ docs/
 
 - 仓库当前是 Java 21 Maven 骨架，策略中心后端开始进入实现阶段。
 - 服务框架已确认：Spring Boot 3.4.9 + Java 21。
-- 数据库方案已确认：MySQL，数据库和表由人工执行 [policy-center-schema.sql](../sql/policy-center-schema.sql) 创建。
+- 数据库方案已确认：MySQL；新环境执行 [policy-center-schema.sql](../sql/policy-center-schema.sql)，已完成基础建表的存量环境执行 [user-policy-schema.sql](../sql/user-policy-schema.sql) 增量创建人员策略表。
 - 数据访问方式已确认：MyBatis + XML Mapper。
 - Redis 客户端已确认：Spring Data Redis + Lettuce，本地单机开发，生产保留 Redis Cluster 配置能力。
 - V1 暂不实现接口认证，生产接入前需要补充内部调用认证。

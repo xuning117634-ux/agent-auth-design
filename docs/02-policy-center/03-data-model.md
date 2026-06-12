@@ -3,9 +3,9 @@
 > 状态：V1 逻辑模型
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-11
+> 最后更新：2026-06-12
 > 阅读顺序：02-03
-> 文档职责：数据库与 Redis 结构的唯一事实来源。V1 使用 MySQL，数据库和表由人工执行 `sql/policy-center-schema.sql` 创建；Redis 客户端使用 Spring Data Redis + Lettuce。
+> 文档职责：数据库与 Redis 结构的唯一事实来源。V1 使用 MySQL；新环境执行 `sql/policy-center-schema.sql`，已完成基础建表的存量环境执行 `sql/user-policy-schema.sql` 增量创建人员策略表；Redis 客户端使用 Spring Data Redis + Lettuce。
 
 ## 关系数据库
 
@@ -36,6 +36,8 @@ agent_tool_policy
 - 工具详情、工具状态和当前工具全集始终由 MCP 网关提供。
 
 物理实现使用 MySQL InnoDB。V1 默认 `agent_id`、`tool_id` 长度为 128，`auth_mode` 长度为 32，时间字段使用毫秒精度 `DATETIME(3)`。建库建表 SQL 见 [policy-center-schema.sql](../../sql/policy-center-schema.sql)。
+
+人员策略涉及的 4 张表可通过 [user-policy-schema.sql](../../sql/user-policy-schema.sql) 独立增量创建。该脚本适用于已经执行过基础建表 SQL、且已经存在 `agent_tool_policy` 的环境。
 
 ### agent_user_policy
 
