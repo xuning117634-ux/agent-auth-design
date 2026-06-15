@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.AgentPolicyToolMapper">
+    <resultMap id="AgentPolicyToolResultMap" type="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.AgentPolicyToolRecord">
+        <result column="agent_id" property="agentId"/>
+        <result column="service_id" property="serviceId"/>
+        <result column="service_name" property="serviceName"/>
+        <result column="tool_name" property="toolName"/>
+        <result column="tool_id" property="toolId"/>
+    </resultMap>
+
+    <select id="selectBoundTool" resultMap="AgentPolicyToolResultMap">
+        SELECT agent_id, service_id, service_name, tool_name, tool_id
+        FROM agent_policy_tool
+        WHERE agent_id = #{agentId}
+          AND service_id = #{serviceId}
+          AND tool_name = #{toolName}
+          AND status = 1
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+</mapper>

@@ -1,16 +1,19 @@
 package com.huawei.it.roma.liveeda.policycenter.api.controller;
 
+import com.huawei.it.roma.liveeda.policycenter.api.dto.BatchConversationAuthorizationRequest;
 import com.huawei.it.roma.liveeda.policycenter.api.dto.CleanupAuthorizationRequest;
 import com.huawei.it.roma.liveeda.policycenter.api.dto.ConversationAuthorizationRequest;
 import com.huawei.it.roma.liveeda.policycenter.api.dto.ConversationAuthorizationStatusResponse;
 import com.huawei.it.roma.liveeda.policycenter.api.dto.ExternalCleanupAuthorizationRequest;
 import com.huawei.it.roma.liveeda.policycenter.domain.AuthorizationStatus;
+import com.huawei.it.roma.liveeda.policycenter.service.BatchConversationAuthorizationResult;
 import com.huawei.it.roma.liveeda.policycenter.service.CleanupResult;
 import com.huawei.it.roma.liveeda.policycenter.service.ConversationAuthorizationResult;
 import com.huawei.it.roma.liveeda.policycenter.service.ConversationAuthorizationService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -25,6 +28,13 @@ public class ConversationAuthorizationController {
     @PostMapping("/internal/conversation-authorizations")
     ConversationAuthorizationResult authorize(@Valid @RequestBody ConversationAuthorizationRequest request) {
         return service.authorize(request.tokenId(), request.toolId());
+    }
+
+    @PostMapping("/internal/conversation-authorizations/batch")
+    BatchConversationAuthorizationResult authorizeBatch(
+            @RequestHeader(value = "tokenid", required = false) String tokenid,
+            @Valid @RequestBody BatchConversationAuthorizationRequest request) {
+        return service.authorizeBatch(tokenid, request.toolIds());
     }
 
     @PostMapping("/internal/conversation-authorizations/status")
