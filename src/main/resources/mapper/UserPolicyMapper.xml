@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.UserPolicyMapper">
+    <resultMap id="AgentUserPolicyResultMap" type="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.AgentUserPolicyRecord">
+        <result column="agent_id" property="agentId"/>
+        <result column="access_scope" property="accessScope"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="ToolUserPolicyResultMap" type="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.ToolUserPolicyRecord">
+        <result column="agent_id" property="agentId"/>
+        <result column="tool_id" property="toolId"/>
+        <result column="access_scope" property="accessScope"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="UserAccessPolicyResultMap" type="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.UserAccessPolicyRecord">
+        <result column="agent_id" property="agentId"/>
+        <result column="user_id" property="userId"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="ToolUserAccessPolicyResultMap" type="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.ToolUserAccessPolicyRecord">
+        <result column="agent_id" property="agentId"/>
+        <result column="tool_id" property="toolId"/>
+        <result column="user_id" property="userId"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectAgentPolicy" resultMap="AgentUserPolicyResultMap">
+        SELECT agent_id, access_scope, created_at, updated_at
+        FROM agent_user_policy
+        WHERE agent_id = #{agentId}
+    </select>
+
+    <select id="selectToolPolicies" resultMap="ToolUserPolicyResultMap">
+        SELECT agent_id, tool_id, access_scope, created_at, updated_at
+        FROM agent_tool_user_policy
+        WHERE agent_id = #{agentId}
+        ORDER BY tool_id
+    </select>
+
+    <select id="selectToolPolicy" resultMap="ToolUserPolicyResultMap">
+        SELECT agent_id, tool_id, access_scope, created_at, updated_at
+        FROM agent_tool_user_policy
+        WHERE agent_id = #{agentId}
+          AND tool_id = #{toolId}
+    </select>
+
+    <select id="selectAgentUserRules" resultMap="UserAccessPolicyResultMap">
+        SELECT agent_id, user_id, created_at, updated_at
+        FROM agent_user_access_policy
+        WHERE agent_id = #{agentId}
+        ORDER BY user_id
+    </select>
+
+    <select id="selectToolUserRules" resultMap="ToolUserAccessPolicyResultMap">
+        SELECT agent_id, tool_id, user_id, created_at, updated_at
+        FROM agent_tool_user_access_policy
+        WHERE agent_id = #{agentId}
+        ORDER BY tool_id, user_id
+    </select>
+
+    <select id="countAgentUser" resultType="int">
+        SELECT COUNT(1)
+        FROM agent_user_access_policy
+        WHERE agent_id = #{agentId}
+          AND user_id = #{userId}
+    </select>
+
+    <select id="countToolUser" resultType="int">
+        SELECT COUNT(1)
+        FROM agent_tool_user_access_policy
+        WHERE agent_id = #{agentId}
+          AND tool_id = #{toolId}
+          AND user_id = #{userId}
+    </select>
+
+    <select id="selectKnownAgentIds" resultType="string">
+        SELECT agent_id FROM agent_tool_policy
+        UNION
+        SELECT agent_id FROM agent_user_policy
+        UNION
+        SELECT agent_id FROM agent_tool_user_policy
+        UNION
+        SELECT agent_id FROM agent_user_access_policy
+        UNION
+        SELECT agent_id FROM agent_tool_user_access_policy
+        ORDER BY agent_id
+    </select>
+
+    <insert id="upsertAgentPolicy">
+        INSERT INTO agent_user_policy (agent_id, access_scope)
+        VALUES (#{agentId}, #{accessScope})
+        ON DUPLICATE KEY UPDATE
+            access_scope = VALUES(access_scope),
+            updated_at = CURRENT_TIMESTAMP(3)
+    </insert>
+
+    <insert id="insertToolPolicy">
+        INSERT INTO agent_tool_user_policy (agent_id, tool_id, access_scope)
+        VALUES (#{agentId}, #{toolId}, #{accessScope})
+    </insert>
+
+    <insert id="insertAgentUserRule">
+        INSERT INTO agent_user_access_policy (agent_id, user_id)
+        VALUES (#{agentId}, #{userId})
+    </insert>
+
+    <insert id="insertToolUserRule">
+        INSERT INTO agent_tool_user_access_policy (agent_id, tool_id, user_id)
+        VALUES (#{agentId}, #{toolId}, #{userId})
+    </insert>
+
+    <delete id="deleteToolPolicies">
+        DELETE FROM agent_tool_user_policy
+        WHERE agent_id = #{agentId}
+    </delete>
+
+    <delete id="deleteAgentUserRules">
+        DELETE FROM agent_user_access_policy
+        WHERE agent_id = #{agentId}
+    </delete>
+
+    <delete id="deleteToolUserRules">
+        DELETE FROM agent_tool_user_access_policy
+        WHERE agent_id = #{agentId}
+    </delete>
+</mapper>

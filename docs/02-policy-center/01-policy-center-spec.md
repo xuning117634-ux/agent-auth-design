@@ -3,7 +3,7 @@
 > 状态：当前版本功能基线
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-09
+> 最后更新：2026-06-11
 > 阅读顺序：02-01
 > 文档职责：策略中心功能行为的唯一事实来源。接口字段见 [API 契约](02-api-contract.md)，存储细节见 [数据模型](03-data-model.md)。
 
@@ -12,6 +12,7 @@
 权限策略中心负责：
 
 - 管理 Agent 与 MCP 工具的绑定关系和授权标签。
+- 管理 Agent 级人员访问策略和 Tool 级用户访问策略。
 - 根据 `tokenId + toolId` 返回运行时授权决策。
 - 保存、查询和清理当前对话的工具授权。
 - 为管理员配置、授权判断和用户确认生成审计事件。
@@ -61,6 +62,15 @@ agentId + userId + conversationId + toolId
 
 授权记录使用 `authz:{tokenId}:{toolId}` 表示，只在当前对话中生效。
 
+### 人员策略
+
+人员策略分为两层：
+
+- Agent 访问策略：用于业务后端和业务 Agent 判断 `userId` 是否可访问 `agentId`。
+- Tool 用户策略：用于策略中心运行时判断 `userId` 是否可访问 `agentId + toolId`。
+
+Agent 和每个已绑定 Tool 分别配置 `accessScope = PUBLIC | RESTRICTED`。`PUBLIC` 对所有用户开放，`RESTRICTED` 只允许白名单用户。Agent 访问策略不参与 `/internal/authorization-decisions`；运行时只检查当前 Tool 的访问范围和白名单。
+
 ## 授权决策
 
 输入：
@@ -93,8 +103,10 @@ flowchart TD
 
     policy --> bound{"工具是否绑定当前 Agent？"}
     bound -->|"否"| unbound["DENY<br/>TOOL_NOT_BOUND"]
-    bound -->|"是"| mode{"authMode"}
+    bound -->|"是"| userPolicy{"Tool 为 PUBLIC<br/>或用户在白名单？"}
 
+    userPolicy -->|"否"| userDenied["DENY<br/>USER_TOOL_ACCESS_DENIED"]
+    userPolicy -->|"是"| mode{"authMode"}
     mode -->|"NO_AUTH_REQUIRED"| noAuth["ALLOW<br/>NO_AUTH_REQUIRED"]
     mode -->|"USER_AUTH_REQUIRED 或空值"| grant["查询 authz:{tokenId}:{toolId}"]
 

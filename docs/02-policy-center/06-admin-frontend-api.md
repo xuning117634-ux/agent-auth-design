@@ -3,7 +3,7 @@
 > 状态：V1 前端联调草案
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-09
+> 最后更新：2026-06-11
 > 阅读顺序：02-06
 > 文档职责：给管理面前端同事说明页面流程、需要调用的后端接口、数据合并规则和错误处理。后端实现契约仍以 [API 契约](02-api-contract.md) 为准。
 
@@ -15,7 +15,7 @@
 | --- | --- |
 | Agent 网关 | 查询当前管理员可管理的 Agent 列表 |
 | MCP 网关 | 查询当前 MCP 全量工具列表 |
-| 权限策略中心 | 查询和保存某个 Agent 的工具授权策略 |
+| 权限策略中心 | 查询和保存某个 Agent 的工具授权策略、人员策略 |
 
 当前版本不引入 `departmentId`、按部门过滤工具或部门授权模型。管理面展示的是 MCP 网关返回的当前全量工具列表，用户从全量列表中选择部分工具绑定到 Agent。
 
@@ -32,6 +32,8 @@
 7. 保存时，前端向权限策略中心提交该 Agent 的完整已绑定工具列表。
 8. 策略中心只保存提交的 `agentId + toolId + authMode` 绑定关系，未提交工具视为未绑定。
 9. 保存成功后重新拉取该 Agent 的策略，刷新页面状态。
+
+人的策略入口与工具策略入口并列。进入人的策略配置时，前端需要同时加载当前 Agent 的工具策略和人员策略；只允许为当前已绑定工具配置 Tool 用户策略。
 
 ## 1. 查询可管理 Agent 列表
 
@@ -204,6 +206,103 @@ AGENT_GATEWAY_BASE_URL
 MCP_GATEWAY_BASE_URL
 POLICY_CENTER_BASE_URL
 ```
+
+## 5. 查询 Agent 当前人员策略
+
+Owner：权限策略中心
+Caller：管理面前端
+
+```http
+GET /admin/agents/{agentId}/user-policies
+```
+
+Response:
+
+```json
+{
+  "agentId": "agent-a",
+  "accessScope": "RESTRICTED",
+  "agentUsers": [
+    {
+      "userId": "user-42",
+      "updatedAt": "2026-06-10T10:00:00Z"
+    }
+  ],
+  "tools": [
+    {
+      "toolId": "crm.customer.query",
+      "accessScope": "RESTRICTED",
+      "users": [
+        {
+          "userId": "user-42",
+          "updatedAt": "2026-06-10T10:00:00Z"
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-06-10T10:00:00Z"
+}
+```
+
+规则：
+
+- Agent 和 Tool 的 `accessScope` 使用 `PUBLIC`（所有用户）或 `RESTRICTED`（仅指定用户）。
+- `PUBLIC` 时白名单可以保留，但不参与决策。
+- `tools` 返回当前 Agent 的全部已绑定工具；未配置 Tool 默认为 `PUBLIC`。
+
+## 6. 整份保存 Agent 人员策略
+
+Owner：权限策略中心
+Caller：管理面前端
+
+```http
+PUT /admin/agents/{agentId}/user-policies
+```
+
+Request:
+
+```json
+{
+  "accessScope": "RESTRICTED",
+  "agentUsers": [
+    {
+      "userId": "user-42"
+    }
+  ],
+  "tools": [
+    {
+      "toolId": "crm.customer.query",
+      "accessScope": "RESTRICTED",
+      "users": [
+        {
+          "userId": "user-42"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "agentId": "agent-a",
+  "agentUserRuleCount": 1,
+  "toolUserRuleCount": 1,
+  "updatedAt": "2026-06-10T10:00:00Z"
+}
+```
+
+规则：
+
+- 请求体表示该 Agent 保存后的完整人员策略。
+- `tools.toolId` 必须是当前 Agent 已绑定工具，否则返回 `409 TOOL_NOT_BOUND`。
+- `accessScope` 缺失时默认 `PUBLIC`。
+- 请求中未出现的 Tool 恢复 `PUBLIC` 并清空白名单。
+- 页面使用“所有用户 / 仅指定用户”分段选择；仅指定用户时启用白名单编辑。
+- 白名单编辑使用可粘贴多工号的输入框；前端可将原始文本放入一个 `userId` 字段提交，后端支持逗号、分号和换行分隔并自动去重。
+- 保存成功后前端重新调用查询接口刷新页面。
 
 ## 前端验收清单
 
