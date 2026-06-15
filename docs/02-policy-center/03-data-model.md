@@ -3,9 +3,9 @@
 > 状态：V1 逻辑模型
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-09
+> 最后更新：2026-06-12
 > 阅读顺序：02-03
-> 文档职责：数据库与 Redis 结构的唯一事实来源。V1 使用 MySQL，数据库和表由人工执行 `sql/policy-center-schema.sql` 创建；Redis 客户端使用 Spring Data Redis + Lettuce。
+> 文档职责：数据库与 Redis 结构的唯一事实来源。V1 使用 MySQL；新环境执行 `sql/policy-center-schema.sql`，已完成基础建表的存量环境执行 `sql/user-policy-schema.sql` 增量创建人员策略表；Redis 客户端使用 Spring Data Redis + Lettuce。
 
 ## 关系数据库
 
@@ -36,6 +36,96 @@ agent_tool_policy
 - 工具详情、工具状态和当前工具全集始终由 MCP 网关提供。
 
 物理实现使用 MySQL InnoDB。V1 默认 `agent_id`、`tool_id` 长度为 128，`auth_mode` 长度为 32，时间字段使用毫秒精度 `DATETIME(3)`。建库建表 SQL 见 [policy-center-schema.sql](../../sql/policy-center-schema.sql)。
+
+人员策略涉及的 4 张表可通过 [user-policy-schema.sql](../../sql/user-policy-schema.sql) 独立增量创建。该脚本适用于已经执行过基础建表 SQL、且已经存在 `agent_tool_policy` 的环境。
+
+### agent_user_policy
+
+保存 Agent 级人员策略配置。
+
+```text
+agent_user_policy
+- agent_id
+- access_scope: PUBLIC | RESTRICTED
+- created_at
+- updated_at
+- UNIQUE(agent_id)
+```
+
+逻辑约束：
+
+- `agent_id`、`access_scope`、`created_at`、`updated_at` 均应为非空。
+- 不存在记录时按 `access_scope = PUBLIC` 处理。
+- `PUBLIC` 对所有用户开放；`RESTRICTED` 仅允许 Agent 白名单用户。
+- Agent 访问范围只用于业务侧判断，不参与运行时工具授权决策。
+
+### agent_tool_user_policy
+
+保存每个已绑定 Tool 的人员访问范围。
+
+```text
+agent_tool_user_policy
+- agent_id
+- tool_id
+- access_scope: PUBLIC | RESTRICTED
+- created_at
+- updated_at
+- UNIQUE(agent_id, tool_id)
+```
+
+不存在记录时按 `PUBLIC` 处理。Tool 为 `RESTRICTED` 时，运行时只允许 Tool 白名单用户。
+
+### agent_user_access_policy
+
+保存 Agent 级白名单。
+
+```text
+agent_user_access_policy
+- agent_id
+- user_id
+- created_at
+- updated_at
+- UNIQUE(agent_id, user_id)
+```
+
+逻辑约束：
+
+- 同一 `agent_id + user_id` 只能保存一条白名单记录。
+- 该表只用于业务侧 Agent 访问判断，不参与运行时工具授权决策。
+
+### agent_tool_user_access_policy
+
+保存 Agent 下已绑定工具的用户白名单。
+
+```text
+agent_tool_user_access_policy
+- agent_id
+- tool_id
+- user_id
+- created_at
+- updated_at
+- UNIQUE(agent_id, tool_id, user_id)
+```
+
+逻辑约束：
+
+- 只允许保存当前 Agent 已绑定工具的用户规则。
+- 同一 `agent_id + tool_id + user_id` 只能保存一条白名单记录。
+- 仅当 Tool 为 `RESTRICTED` 时读取该表；Tool 为 `PUBLIC` 时忽略白名单。
+
+### 人员策略整份覆盖事务
+
+`PUT /admin/agents/{agentId}/user-policies` 在单个事务中完成：
+
+1. 校验 Agent 白名单、工具和工具白名单用户不重复。
+2. 校验请求中的 `toolId` 均属于当前 Agent 已绑定工具。
+3. 新增或更新 `agent_user_policy`。
+4. 删除该 Agent 下旧的 Tool 访问范围、Agent 白名单和 Tool 白名单。
+5. 插入请求中的 Tool 访问范围、Agent 白名单和 Tool 白名单。
+6. 未出现在请求中的 Tool 自然回落为 `PUBLIC`。
+7. 提交事务后才返回成功。
+
+事务失败必须整体回滚。并发写入采用最后成功提交事务的完整列表作为最终状态。
 
 ### 整份覆盖事务
 
@@ -100,6 +190,7 @@ MATCH authz:{tokenId}:*
 | 存储故障 | 运行时行为 |
 | --- | --- |
 | 策略数据库查询失败 | `DENY + POLICY_STORE_UNAVAILABLE` |
+| 人员策略数据库查询失败 | `DENY + POLICY_STORE_UNAVAILABLE` |
 | Redis 查询失败 | `DENY + AUTHORIZATION_STORE_UNAVAILABLE` |
 | Redis 授权写入失败 | 确认接口失败，不得向用户报告授权成功 |
 | Redis 清理失败 | 清理接口失败并告警，不得静默忽略 |

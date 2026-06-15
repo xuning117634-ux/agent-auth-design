@@ -3,7 +3,7 @@
 > 状态：V1 当前实现  
 > 适用对象：MCP 网关、管理面前端、业务后端、Agent 开发人员  
 > 服务地址示例：`http://localhost:18080`  
-> 最后更新：2026-06-10  
+> 最后更新：2026-06-11
 > 权威契约：[策略中心 API 契约](02-api-contract.md)
 
 本文集中列出策略中心当前对外提供的全部业务接口及示例数据，供调用方联调使用。接口字段和错误语义以当前代码及 [API 契约](02-api-contract.md) 为准。
@@ -18,7 +18,12 @@
 | 4 | 业务后端 | `POST` | `/internal/conversation-authorizations` | 确认当前对话工具授权 |
 | 5 | Agent | `POST` | `/internal/conversation-authorizations/status` | 轮询当前对话授权状态 |
 | 6 | 业务后端 | `POST` | `/internal/conversation-authorizations/cleanup` | 清理当前对话全部工具授权 |
-| 7 | 外部受信调用方 | `POST` | `/external/conversation-authorizations/cleanup` | 按 agentId、userId、conversationId 清理当前对话全部工具授权 |
+| 7 | 外部受信调用方 | `POST` | `/external/conversation-authorizations/cleanup` | 按 agentId/userId/conversationId 清理对话授权 |
+| 8 | 管理面前端 | `GET` | `/admin/agents/{agentId}/user-policies` | 查询 Agent 人员策略 |
+| 9 | 管理面前端 | `PUT` | `/admin/agents/{agentId}/user-policies` | 整份保存 Agent 人员策略 |
+| 10 | 业务后端 / Agent | `POST` | `/internal/agent-access-decisions` | 判断用户是否可访问 Agent |
+| 11 | 业务后端 | `GET` | `/internal/users/{userId}/agents` | 查询用户可访问 Agent |
+| 12 | 业务后端 / Agent | `GET` | `/internal/agents/{agentId}/users/{userId}/tools` | 查询用户可访问工具 |
 
 V1 暂未实现接口认证。生产接入前必须由内部网络、上游网关或后续认证机制限制调用方，尤其不能将 `/internal/**` 直接暴露到公网。
 
@@ -174,9 +179,12 @@ Redis 异常：
 | `ALLOW` | `CONVERSATION_AUTHORIZED` |
 | `AUTHORIZATION_REQUIRED` | `USER_AUTHORIZATION_REQUIRED` |
 | `DENY` | `TOOL_NOT_BOUND` |
+| `DENY` | `USER_TOOL_ACCESS_DENIED` |
 | `DENY` | `INVALID_TOKEN_ID` |
 | `DENY` | `POLICY_STORE_UNAVAILABLE` |
 | `DENY` | `AUTHORIZATION_STORE_UNAVAILABLE` |
+
+目标 Tool 为 `PUBLIC` 时跳过人员限制；目标 Tool 为 `RESTRICTED` 且当前 `userId` 不在白名单时返回 `DENY + USER_TOOL_ACCESS_DENIED`。
 
 ## 4. 查询 Agent 工具策略
 
@@ -490,7 +498,69 @@ X-Trace-Id: trace-20260610-001
 - 清理范围与内部 cleanup 一致，删除 `authz:{agentId:userId:conversationId}:*`。
 - V1 暂不做接口认证；生产或第三方开放前必须接入认证或上游网关鉴权。
 
-## 10. 调用方处理要求
+## 10. 人员策略接口
+
+### 10.1 查询 Agent 人员策略
+
+```http
+GET /admin/agents/{agentId}/user-policies
+```
+
+返回 Agent 的 `accessScope`、Agent 白名单，以及全部已绑定 Tool 的 `accessScope` 和白名单。未配置策略时默认 `PUBLIC`。
+
+### 10.2 整份保存 Agent 人员策略
+
+```http
+PUT /admin/agents/{agentId}/user-policies
+```
+
+请求体表示完整人员策略。访问范围为 `PUBLIC | RESTRICTED`，名单项只包含 `userId`。`userId` 可填写单个工号，或使用英文/中文逗号、英文/中文分号和换行分隔多个工号；后端会自动 trim 并去重。`tools.toolId` 必须是当前 Agent 已绑定工具，否则返回 `409 TOOL_NOT_BOUND`。
+
+### 10.3 判断用户是否可访问 Agent
+
+```http
+POST /internal/agent-access-decisions
+```
+
+请求：
+
+```json
+{
+  "agentId": "agent-a",
+  "userId": "user-42"
+}
+```
+
+响应：
+
+```json
+{
+  "agentId": "agent-a",
+  "userId": "user-42",
+  "allowed": true,
+  "reason": "AGENT_USER_WHITELISTED"
+}
+```
+
+该接口供业务后端或业务 Agent 使用，不参与工具层面的授权决策。
+
+### 10.4 查询用户可访问 Agent
+
+```http
+GET /internal/users/{userId}/agents
+```
+
+返回策略中心已知且该用户可访问的 Agent。
+
+### 10.5 查询用户可访问工具
+
+```http
+GET /internal/agents/{agentId}/users/{userId}/tools
+```
+
+返回该 Agent 下当前用户可访问的已绑定工具，响应只包含 `toolId + authMode`。PUBLIC Tool 对所有用户返回，RESTRICTED Tool 只对其白名单用户返回。
+
+## 11. 调用方处理要求
 
 ### MCP 网关
 
@@ -517,7 +587,7 @@ X-Trace-Id: trace-20260610-001
 - 只向策略中心提交用户实际选择绑定的工具。
 - 保存成功后重新查询策略，刷新页面状态。
 
-## 11. 健康检查
+## 12. 健康检查
 
 健康检查不属于业务接口，但可用于部署和本地联调：
 

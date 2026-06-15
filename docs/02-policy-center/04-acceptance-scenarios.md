@@ -3,7 +3,7 @@
 > 状态：V1 验收基线
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-09
+> 最后更新：2026-06-11
 > 阅读顺序：02-04
 > 用途：用于生成单元测试、存储集成测试和端到端测试。
 
@@ -278,6 +278,63 @@ Given 策略中心完成配置、决策、确认或清理操作
 When 写入审计日志
 Then 日志包含操作上下文和 traceId
 And 不包含 Cookie、业务 Token 或密钥
+```
+
+## 人员策略
+
+### 场景 25：PUBLIC Tool 对所有用户开放
+
+```gherkin
+Given Agent A 已绑定 Tool X
+And Tool X 的 accessScope 为 PUBLIC
+And Tool X 保存了不包含 User A 的白名单
+When User A 请求 Tool X 的授权决策
+Then 策略中心忽略 Tool X 的白名单
+And 继续按 Tool X 的 authMode 和 Redis 当前对话授权决策
+```
+
+### 场景 26：RESTRICTED Tool 拒绝非白名单用户
+
+```gherkin
+Given Agent A 已绑定 Tool X
+And Tool X 的 accessScope 为 RESTRICTED
+And User A 不在 Tool X 的白名单
+When User A 请求 Tool X 的授权决策
+Then 策略中心返回 DENY
+And reason 为 USER_TOOL_ACCESS_DENIED
+And 不进入人在回路授权流程
+```
+
+### 场景 27：Agent 访问策略不影响工具决策
+
+```gherkin
+Given Agent A 的 accessScope 为 RESTRICTED
+And User A 不在 Agent A 的白名单
+And Agent A 已绑定 Tool X
+And Tool X 的 accessScope 为 PUBLIC
+When User A 请求 Tool X 的授权决策
+Then 策略中心不检查 Agent 访问策略
+And 继续按 Tool X 的 authMode 和 Redis 当前对话授权决策
+```
+
+### 场景 28：用户可访问工具列表按 Tool 访问范围过滤
+
+```gherkin
+Given Agent A 已绑定 Tool X 和 Tool Y
+And Tool X 的 accessScope 为 PUBLIC
+And Tool Y 的 accessScope 为 RESTRICTED
+And Tool Y 的白名单只包含 User B
+When 查询 User A 可访问工具
+Then 查询 User A 可访问工具只返回 Tool X
+```
+
+### 场景 29：批量工号输入展开并去重
+
+```gherkin
+Given 管理员在 Agent 或 Tool 白名单输入框中提交 "z123,c456;z123"
+When 策略中心整份保存人员策略
+Then 策略中心保存 z123 和 c456 两条白名单记录
+And 查询人员策略时返回两个独立用户
 ```
 
 ## 暂缓验收项

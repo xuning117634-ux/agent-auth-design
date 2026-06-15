@@ -3,7 +3,7 @@
 > 状态：当前开发进度基线
 > 负责人：项目维护者
 > 适用版本：V1
-> 最后更新：2026-06-10
+> 最后更新：2026-06-11
 > 阅读顺序：02-05
 > 文档职责：记录策略中心已经完成、正在开发和被阻塞的工作。功能要求以 [功能规格](01-policy-center-spec.md) 为准，接口要求以 [API 契约](02-api-contract.md) 为准。
 
@@ -12,8 +12,8 @@
 | 项目 | 当前状态 |
 | --- | --- |
 | 策略中心代码 | 进行中 |
-| 对外接口 | 6 / 6 已实现；0 / 6 满足完整完成标准 |
-| 内部功能 | 5 / 13 已完成 |
+| 对外接口 | 11 / 11 已实现；0 / 11 满足完整完成标准 |
+| 内部功能 | 5 / 14 已完成 |
 | 验收场景 | 运行时、管理保存、人在回路核心路径已有单元与 HTTP 测试覆盖；存储集成待验证 |
 | 当前里程碑 | M1 进行中 |
 | 当前代码基线 | Spring Boot 策略中心服务骨架、领域服务、REST 接口、MyBatis、Redis 适配和自动化测试已进入仓库；MySQL 表由人工 SQL 创建 |
@@ -45,7 +45,8 @@
 | F10 | 对话授权清理 | 使用 `SCAN MATCH authz:{tokenId}:*` 分批清理全部工具授权，支持重复清理 | F03、F07 | 场景 20-21 | 进行中 | cleanup 接口和 Redis SCAN 适配已实现；待 Redis 集成验证 |
 | F11 | 统一异常处理与 fail-closed | 参数错误、数据库异常、Redis 异常和内部错误的统一映射 | F02、F04、F07 | 场景 6-8、12、18-21、23 | 已完成 | `GlobalExceptionHandler`、服务 fail-closed 测试、HTTP 错误响应测试 |
 | F12 | 审计日志与 traceId | 记录配置、决策、确认、查询和清理事件，不记录敏感凭证 | F01、F02、接口认证与 traceId 方案 | 场景 24 | 已完成 | `TraceIdFilter` 记录 HTTP 入口/出口并回写 `X-Trace-Id`；`GlobalExceptionHandler` 记录异常出口；`AuditLogger` 覆盖配置、决策、确认、查询和清理 |
-| F13 | 自动化测试体系 | 单元测试、数据库与 Redis 集成测试、接口测试和完整验收回归 | F01-F12 | 场景 1-24 | 进行中 | 当前 28 个单元/HTTP 测试通过；`scripts/verify-policy-center.ps1` 提供手动端到端验收；待本地 Redis 安装后执行 |
+| F13 | 自动化测试体系 | 单元测试、数据库与 Redis 集成测试、接口测试和完整验收回归 | F01-F14 | 场景 1-24、人员策略新增场景 | 进行中 | `mvn test` 通过，63 tests，0 failures；`scripts/verify-user-policy.ps1` 在真实 MySQL/Redis 环境通过 37/37 个 HTTP 场景；原有完整验收仍由 `scripts/verify-policy-center.ps1` 回归 |
+| F14 | 人员策略配置与决策 | Agent 访问范围、Tool 访问范围、人员策略整份覆盖、用户可访问 Agent/工具查询 | F02、F04、F06 | 人员策略新增场景 | 已完成 | `UserPolicyService`、`AdminUserPolicyController`、`UserPolicyQueryController`、`UserPolicyMapper` 和测试已实现；支持批量工号输入；`mvn test` 63 tests 通过，真实 MySQL/Redis HTTP 验证 37/37 通过 |
 
 ## 对外接口进度
 
@@ -169,14 +170,36 @@ POST /external/conversation-authorizations/cleanup
 | 自动化测试 | 已完成 | `ConversationAuthorizationControllerTest`、`TokenIdTest` |
 | API 文档一致性 | 已完成 | 外部调用方无需理解 tokenId 拼接规则 |
 
+### I07-I11 人员策略接口
+
+```http
+GET /admin/agents/{agentId}/user-policies
+PUT /admin/agents/{agentId}/user-policies
+POST /internal/agent-access-decisions
+GET /internal/users/{userId}/agents
+GET /internal/agents/{agentId}/users/{userId}/tools
+```
+
+| 交付项 | 状态 | 实现证据 / 备注 |
+| --- | --- | --- |
+| 请求和响应模型 | 已完成 | Agent/Tool `accessScope`、白名单、Agent 访问判断和可访问 Agent/工具 DTO 已实现 |
+| 参数校验 | 已完成 | 必填字段、重复用户、重复工具、未绑定工具校验 |
+| Controller 接入 | 已完成 | `AdminUserPolicyController`、`UserPolicyQueryController` |
+| 领域服务实现 | 已完成 | `UserPolicyService` 与 `ToolUserPolicyEvaluator` |
+| 数据库或 Redis 集成 | 已完成 | 四张人员策略表已在真实 MySQL 中建表并完成整份保存、查询和运行时决策验证；Redis 对话授权交集同时通过 HTTP 验证 |
+| 错误码映射 | 已完成 | `INVALID_REQUEST`、`TOOL_NOT_BOUND`、`POLICY_STORE_UNAVAILABLE` |
+| 审计事件 | 进行中 | 保存人员策略记录 `USER_POLICY_REPLACED`；查询类审计待后续统一补齐 |
+| 自动化测试 | 已完成 | `UserPolicyServiceTest`、`AdminUserPolicyControllerTest`、`UserPolicyQueryControllerTest`；`mvn test` 通过 |
+| API 文档一致性 | 已完成 | 已同步 API 契约、数据模型、管理面接口和对外接口参考 |
+
 ## 阻塞项
 
 | 编号 | 待确认事项 | 阻塞范围 | 状态 | 解除条件 |
 | --- | --- | --- | --- | --- |
-| B01 | Spring Boot 及依赖版本 | F01-F13、I01-I06 | 已解除 | Spring Boot 3.4.9 + Java 21 |
+| B01 | Spring Boot 及依赖版本 | F01-F14、I01-I11 | 已解除 | Spring Boot 3.4.9 + Java 21 |
 | B02 | 数据库和建表方式 | F04-F06、F08、I01-I03 | 已解除 | MySQL + 手动执行 SQL |
 | B03 | Redis 客户端和部署模式 | F06-F11、I01、I03-I06 | 已解除 | Spring Data Redis + Lettuce，本地单机开发，生产保留 Cluster 配置 |
-| B04 | 内部接口认证方式 | F12、I01、I03-I06 | 已解除 | V1 暂不实现接口认证 |
+| B04 | 内部接口认证方式 | F12、F14、I01、I03-I11 | 已解除 | V1 暂不实现接口认证 |
 | B05 | 授权记录物理安全 TTL | F07-F10 | 已解除 | 授权 Key TTL 7 天 |
 | B06 | 对话结束与迟到授权并发处理 | F08、F10、I03、I05-I06 | 已解除 | V1 信任业务后端不会迟到确认，不维护关闭状态 |
 
@@ -221,3 +244,6 @@ POST /external/conversation-authorizations/cleanup
 | 2026-06-09 | 完成策略中心 V1 后端初始实现 | F02、F03、F06、F11、F12 标记已完成；F01、F04、F05、F07-F10、F13 进行中 | `mvn test` 通过，24 tests，0 failures |
 | 2026-06-10 | 增强轻量日志与 TraceId | F12 保持已完成 | 新增 HTTP 请求入口/出口日志、响应头 `X-Trace-Id`、异常出口日志和控制台 traceId pattern；`mvn test` 通过，28 tests，0 failures |
 | 2026-06-10 | 新增外部对话授权清理接口 | I06 已实现，F10 保持进行中 | 新增 `/external/conversation-authorizations/cleanup`，外部调用方传 `agentId + userId + conversationId`；待真实 Redis 验证 |
+| 2026-06-10 | 新增人员策略配置与运行时 Tool 用户策略开关 | F14 进入进行中，I07-I11 已实现 | 新增人员策略管理、Agent 访问判断、用户可访问 Agent/工具查询和运行时 `USER_TOOL_ACCESS_DENIED`；`mvn test` 通过，46 tests，0 failures |
+| 2026-06-11 | 人员策略改为统一访问范围模型 | F14 标记已完成 | Agent 和 Tool 使用 `PUBLIC / RESTRICTED` 与白名单；`mvn test` 通过 48 tests，真实 MySQL/Redis HTTP 验证 35/35 通过 |
+| 2026-06-11 | 人员策略支持批量工号输入 | F14 保持已完成 | `userId` 支持逗号、分号和换行批量输入并自动去重；合并最新主分支后 `mvn test` 通过 63 tests，真实 HTTP 验证 37/37 通过 |

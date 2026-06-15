@@ -24,21 +24,31 @@ public class AuthorizationDecisionService {
 
     private final ToolPolicyRepository toolPolicyRepository;
     private final ConversationAuthorizationStore authorizationStore;
+    private final ToolUserPolicyEvaluator toolUserPolicyEvaluator;
     private final AuditLogger auditLogger;
 
     public AuthorizationDecisionService(
             ToolPolicyRepository toolPolicyRepository,
             ConversationAuthorizationStore authorizationStore) {
-        this(toolPolicyRepository, authorizationStore, NoopAuditLogger.INSTANCE);
+        this(toolPolicyRepository, authorizationStore, ToolUserPolicyEvaluator.allowAll(), NoopAuditLogger.INSTANCE);
+    }
+
+    public AuthorizationDecisionService(
+            ToolPolicyRepository toolPolicyRepository,
+            ConversationAuthorizationStore authorizationStore,
+            AuditLogger auditLogger) {
+        this(toolPolicyRepository, authorizationStore, ToolUserPolicyEvaluator.allowAll(), auditLogger);
     }
 
     @Autowired
     public AuthorizationDecisionService(
             ToolPolicyRepository toolPolicyRepository,
             ConversationAuthorizationStore authorizationStore,
+            ToolUserPolicyEvaluator toolUserPolicyEvaluator,
             AuditLogger auditLogger) {
         this.toolPolicyRepository = toolPolicyRepository;
         this.authorizationStore = authorizationStore;
+        this.toolUserPolicyEvaluator = toolUserPolicyEvaluator;
         this.auditLogger = auditLogger;
     }
 
@@ -70,6 +80,27 @@ public class AuthorizationDecisionService {
         if (policy.isEmpty()) {
             return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
                     AuthorizationDecision.deny(DecisionReason.TOOL_NOT_BOUND));
+        }
+
+        boolean userCanAccessTool;
+        try {
+            userCanAccessTool = toolUserPolicyEvaluator.canAccessTool(tokenId.agentId(), toolId, tokenId.userId());
+        } catch (RuntimeException exception) {
+            log.warn("AUTHORIZATION_DECISION_FAIL_CLOSED tokenId={} agentId={} userId={} conversationId={} toolId={} reason={}",
+                    tokenId.raw(),
+                    tokenId.agentId(),
+                    tokenId.userId(),
+                    tokenId.conversationId(),
+                    toolId,
+                    DecisionReason.POLICY_STORE_UNAVAILABLE,
+                    exception);
+            return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
+                    AuthorizationDecision.deny(DecisionReason.POLICY_STORE_UNAVAILABLE));
+        }
+
+        if (!userCanAccessTool) {
+            return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
+                    AuthorizationDecision.deny(DecisionReason.USER_TOOL_ACCESS_DENIED));
         }
 
         AuthMode authMode = policy.get().effectiveAuthMode();
