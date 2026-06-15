@@ -36,6 +36,43 @@ class ConversationAuthorizationServiceTest {
     }
 
     @Test
+    void authorizesBatchAfterValidatingAllTools() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicies(Map.of(
+                "tool-x", AuthMode.USER_AUTH_REQUIRED,
+                "tool-y", AuthMode.USER_AUTH_REQUIRED));
+        FakeAuthorizationStore store = new FakeAuthorizationStore(false);
+        ConversationAuthorizationService service = new ConversationAuthorizationService(policies, store, Duration.ofDays(7));
+
+        BatchConversationAuthorizationResult result = service.authorizeBatch(
+                "agent-a:user-42:conversation-99",
+                List.of("tool-x", "tool-y"));
+
+        assertThat(result.status()).isEqualTo(AuthorizationStatus.AUTHORIZED);
+        assertThat(result.tokenId()).isEqualTo("agent-a:user-42:conversation-99");
+        assertThat(result.toolCount()).isEqualTo(2);
+        assertThat(result.toolIds()).containsExactly("tool-x", "tool-y");
+        assertThat(store.authorizedTools).containsExactly("tool-x", "tool-y");
+    }
+
+    @Test
+    void batchAuthorizationFailsBeforeWritingWhenAnyToolIsInvalid() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicies(Map.of(
+                "tool-x", AuthMode.USER_AUTH_REQUIRED,
+                "tool-y", AuthMode.NO_AUTH_REQUIRED));
+        FakeAuthorizationStore store = new FakeAuthorizationStore(false);
+        ConversationAuthorizationService service = new ConversationAuthorizationService(policies, store, Duration.ofDays(7));
+
+        Throwable thrown = catchThrowable(() -> service.authorizeBatch(
+                "agent-a:user-42:conversation-99",
+                List.of("tool-x", "tool-y")));
+
+        assertThat(thrown).isInstanceOf(ApiException.class);
+        ApiException exception = (ApiException) thrown;
+        assertThat(exception.code()).isEqualTo(ErrorCode.AUTHORIZATION_NOT_REQUIRED);
+        assertThat(store.authorizedTools).isEmpty();
+    }
+
+    @Test
     void rejectsAuthorizationForNoAuthRequiredTool() {
         FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.NO_AUTH_REQUIRED);
         ConversationAuthorizationService service =
@@ -171,14 +208,20 @@ class ConversationAuthorizationServiceTest {
 
     private static final class FakePolicyRepository implements ToolPolicyRepository {
         private final Optional<ToolPolicy> policy;
+        private final Map<String, AuthMode> policies;
         private final boolean fail;
 
         private FakePolicyRepository(Optional<ToolPolicy> policy) {
-            this(policy, false);
+            this(policy, Map.of(), false);
         }
 
         private FakePolicyRepository(Optional<ToolPolicy> policy, boolean fail) {
+            this(policy, Map.of(), fail);
+        }
+
+        private FakePolicyRepository(Optional<ToolPolicy> policy, Map<String, AuthMode> policies, boolean fail) {
             this.policy = policy;
+            this.policies = policies;
             this.fail = fail;
         }
 
@@ -190,6 +233,10 @@ class ConversationAuthorizationServiceTest {
             return new FakePolicyRepository(Optional.of(new ToolPolicy("agent-a", "tool-x", authMode)));
         }
 
+        static FakePolicyRepository withPolicies(Map<String, AuthMode> policies) {
+            return new FakePolicyRepository(Optional.empty(), policies, false);
+        }
+
         static FakePolicyRepository failing() {
             return new FakePolicyRepository(Optional.empty(), true);
         }
@@ -198,6 +245,12 @@ class ConversationAuthorizationServiceTest {
         public Optional<ToolPolicy> findByAgentIdAndToolId(String agentId, String toolId) {
             if (fail) {
                 throw new IllegalStateException("policy db unavailable");
+            }
+            if (!policies.isEmpty()) {
+                AuthMode authMode = policies.get(toolId);
+                return authMode == null
+                        ? Optional.empty()
+                        : Optional.of(new ToolPolicy(agentId, toolId, authMode));
             }
             return policy;
         }
@@ -221,6 +274,7 @@ class ConversationAuthorizationServiceTest {
         private String authorizedTokenId;
         private String authorizedToolId;
         private Duration authorizedTtl;
+        private final List<String> authorizedTools = new ArrayList<>();
 
         private FakeAuthorizationStore(boolean exists) {
             this(exists, false, false, false);
@@ -261,6 +315,7 @@ class ConversationAuthorizationServiceTest {
             this.authorizedTokenId = tokenId;
             this.authorizedToolId = toolId;
             this.authorizedTtl = ttl;
+            this.authorizedTools.add(toolId);
         }
 
         @Override
