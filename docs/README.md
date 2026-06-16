@@ -21,7 +21,9 @@ docs/
 │   ├── 05-development-progress.md
 │   ├── 06-admin-frontend-api.md
 │   ├── 07-user-policy-design.md
-│   └── 08-external-api-reference.md
+│   ├── 08-external-api-reference.md
+│   ├── 09-user-policy-api.md
+│   └── 10-user-policy-merge-deployment-guide.md
 ├── maven-version-reference.md
 ├── 03-decisions/
 │   ├── README.md
@@ -31,7 +33,13 @@ docs/
 ├── 04-future/
 │   └── 01-future-authorization-evolution.md
 ├── 05-integration/
-│   └── 01-business-backend-agent-integration-guide.md
+│   ├── 01-developer-access-user-journey.md
+│   ├── 02-developer-integration-api-guide.md
+│   ├── 03-finance-agent-authorization-apis.md
+│   └── 99-reference-business-backend-agent-integration-guide.md
+├── 06-agent-gateway/
+│   ├── 01-agent-gateway-project-overall-architecture.md
+│   └── 02-agent-gateway-api-reference.md
 └── 99-assets/
     └── agent-auth-mcp-architecture.png
 ```
@@ -51,8 +59,13 @@ docs/
 7. [管理面前端接口](02-policy-center/06-admin-frontend-api.md)：交付前端同事联调管理页面。
 8. [人的权限策略配置方案](02-policy-center/07-user-policy-design.md)：理解 Agent 访问策略和 Tool 用户策略的边界。
 9. [策略中心对外接口参考](02-policy-center/08-external-api-reference.md)：按调用方查看当前全部接口及可直接联调的示例数据。
-10. [业务后端与业务 Agent 接入指南](05-integration/01-business-backend-agent-integration-guide.md)：交付业务后端和业务 Agent 团队接入安全方案。
-11. [架构决策记录](03-decisions/README.md)：了解已经确认、不应在编码时随意改变的设计。
+10. [开发者接入用户旅程](05-integration/01-developer-access-user-journey.md)：用于宣讲业务方如何从管理面配置到运行面调用理解完整接入旅程。
+11. [开发人员详细接入文档](05-integration/02-developer-integration-api-guide.md)：交付开发人员按接口、示例和联调步骤完成标准接入。
+12. [财经 Agent 授权预检与批量授权接口](05-integration/03-finance-agent-authorization-apis.md)：交付财经 Agent 定制接入。
+13. [Agent 网关 API 参考](06-agent-gateway/02-agent-gateway-api-reference.md)：查看 Agent 网关运行面接口字段。
+14. [Agent 网关 H2A 代理设计](06-agent-gateway/01-agent-gateway-project-overall-architecture.md)：理解 Agent 网关代理流量、tokenId 生成和 Cookie 隔离保存。
+15. [架构决策记录](03-decisions/README.md)：了解已经确认、不应在编码时随意改变的设计。
+16. [业务后端与业务 Agent 接入指南（参考材料）](05-integration/99-reference-business-backend-agent-integration-guide.md)：保留早期完整接入说明，作为参考材料阅读。
 
 [未来授权能力演进](04-future/01-future-authorization-evolution.md) 只用于评估扩展性，不属于 V1 实现和验收范围。
 
@@ -69,7 +82,11 @@ docs/
 | 管理面前端页面联调接口 | [管理面前端接口](02-policy-center/06-admin-frontend-api.md) |
 | 人的权限策略配置与运行时工具用户策略 | [人的权限策略配置方案](02-policy-center/07-user-policy-design.md) |
 | 策略中心全部对外接口与联调示例 | [策略中心对外接口参考](02-policy-center/08-external-api-reference.md) |
-| 业务后端与业务 Agent 接入安全方案 | [业务后端与业务 Agent 接入指南](05-integration/01-business-backend-agent-integration-guide.md) |
+| 业务宣讲和接入旅程理解 | [开发者接入用户旅程](05-integration/01-developer-access-user-journey.md) |
+| 开发人员标准接口接入与联调步骤 | [开发人员详细接入文档](05-integration/02-developer-integration-api-guide.md) |
+| 财经 Agent 定制接入接口 | [财经 Agent 授权预检与批量授权接口](05-integration/03-finance-agent-authorization-apis.md) |
+| 业务后端与业务 Agent 接入参考材料 | [业务后端与业务 Agent 接入指南（参考材料）](05-integration/99-reference-business-backend-agent-integration-guide.md) |
+| Agent 网关代理流量、tokenId 和 Cookie 隔离 | [Agent 网关 H2A 代理设计](06-agent-gateway/01-agent-gateway-project-overall-architecture.md) |
 | 已接受的重要设计选择 | [架构决策记录](03-decisions/README.md) |
 | 未进入当前版本的方案 | [未来授权能力演进](04-future/01-future-authorization-evolution.md) |
 
