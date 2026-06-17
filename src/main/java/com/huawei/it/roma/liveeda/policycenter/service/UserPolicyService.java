@@ -182,10 +182,7 @@ public class UserPolicyService implements ToolUserPolicyEvaluator {
     public List<AgentAccessDecision> listAccessibleAgents(String userId) {
         ensureNotBlank(userId, "userId must not be blank");
         try {
-            return repository.findKnownAgentIds().stream()
-                    .map(agentId -> decideAgentAccess(agentId, userId))
-                    .filter(AgentAccessDecision::allowed)
-                    .toList();
+            return repository.findAccessibleAgents(userId);
         } catch (RuntimeException exception) {
             throw policyStoreUnavailable(exception);
         }

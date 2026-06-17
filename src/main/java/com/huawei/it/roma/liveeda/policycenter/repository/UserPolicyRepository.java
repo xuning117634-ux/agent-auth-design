@@ -1,5 +1,6 @@
 package com.huawei.it.roma.liveeda.policycenter.repository;
 
+import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessDecision;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserAccessRule;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserPolicy;
@@ -24,7 +25,7 @@ public interface UserPolicyRepository {
 
     boolean existsToolUser(String agentId, String toolId, String userId);
 
-    List<String> findKnownAgentIds();
+    List<AgentAccessDecision> findAccessibleAgents(String userId);
 
     void replaceAll(
             String agentId,
