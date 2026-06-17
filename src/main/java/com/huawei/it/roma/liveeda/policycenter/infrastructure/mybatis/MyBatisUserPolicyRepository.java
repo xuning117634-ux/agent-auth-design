@@ -1,6 +1,8 @@
 package com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis;
 
 import com.huawei.it.roma.liveeda.policycenter.domain.AccessScope;
+import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessDecision;
+import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessReason;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserAccessRule;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserPolicy;
@@ -65,8 +67,10 @@ public class MyBatisUserPolicyRepository implements UserPolicyRepository {
     }
 
     @Override
-    public List<String> findKnownAgentIds() {
-        return mapper.selectKnownAgentIds();
+    public List<AgentAccessDecision> findAccessibleAgents(String userId) {
+        return mapper.selectAccessibleAgents(userId).stream()
+                .map(record -> toAgentAccessDecision(record, userId))
+                .toList();
     }
 
     @Transactional
@@ -123,6 +127,16 @@ public class MyBatisUserPolicyRepository implements UserPolicyRepository {
                 record.getToolId(),
                 record.getUserId(),
                 record.getUpdatedAt());
+    }
+
+    private AgentAccessDecision toAgentAccessDecision(AccessibleAgentRecord record, String userId) {
+        AccessScope accessScope = record.getAccessScope() == null
+                ? AccessScope.PUBLIC
+                : AccessScope.valueOf(record.getAccessScope());
+        AgentAccessReason reason = accessScope == AccessScope.PUBLIC
+                ? AgentAccessReason.AGENT_PUBLIC_ACCESS
+                : AgentAccessReason.AGENT_USER_WHITELISTED;
+        return AgentAccessDecision.allow(record.getAgentId(), userId, reason);
     }
 
     private AgentUserPolicyRecord toRecord(AgentUserPolicy policy) {
