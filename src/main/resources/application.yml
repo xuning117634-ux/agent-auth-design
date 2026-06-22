@@ -26,6 +26,7 @@ mybatis:
 policy-center:
   authorization:
     ttl: 7d
+    max-ttl: 30d
   redis:
     scan-count: 500
 

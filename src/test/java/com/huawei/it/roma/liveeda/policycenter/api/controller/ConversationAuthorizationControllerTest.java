@@ -22,9 +22,10 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 
 class ConversationAuthorizationControllerTest {
 
+    private final FixedAuthorizationStore store = new FixedAuthorizationStore(true, 2);
     private final ConversationAuthorizationService service = new ConversationAuthorizationService(
             new FixedPolicyRepository(AuthMode.USER_AUTH_REQUIRED),
-            new FixedAuthorizationStore(true, 2),
+            store,
             Duration.ofDays(7));
     private final MockMvc mockMvc = standaloneSetup(new ConversationAuthorizationController(service))
             .setControllerAdvice(new GlobalExceptionHandler())
@@ -38,13 +39,16 @@ class ConversationAuthorizationControllerTest {
                         .content("""
                                 {
                                   "tokenId": "agent-a:user-42:conversation-99",
-                                  "toolId": "tool-x"
+                                  "toolId": "tool-x",
+                                  "expiresInSeconds": 3600
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("AUTHORIZED"))
                 .andExpect(jsonPath("$.tokenId").value("agent-a:user-42:conversation-99"))
                 .andExpect(jsonPath("$.toolId").value("tool-x"));
+
+        org.assertj.core.api.Assertions.assertThat(store.authorizedTtl).isEqualTo(Duration.ofHours(1));
     }
 
     @Test
@@ -57,7 +61,8 @@ class ConversationAuthorizationControllerTest {
                                   "toolIds": [
                                     "tool-x",
                                     "tool-y"
-                                  ]
+                                  ],
+                                  "expiresInSeconds": 60
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -66,6 +71,8 @@ class ConversationAuthorizationControllerTest {
                 .andExpect(jsonPath("$.toolCount").value(2))
                 .andExpect(jsonPath("$.toolIds[0]").value("tool-x"))
                 .andExpect(jsonPath("$.toolIds[1]").value("tool-y"));
+
+        org.assertj.core.api.Assertions.assertThat(store.authorizedTtl).isEqualTo(Duration.ofMinutes(1));
     }
 
     @Test
@@ -155,6 +162,7 @@ class ConversationAuthorizationControllerTest {
     private static final class FixedAuthorizationStore implements ConversationAuthorizationStore {
         private final boolean exists;
         private final long deletedCount;
+        private Duration authorizedTtl;
 
         private FixedAuthorizationStore(boolean exists, long deletedCount) {
             this.exists = exists;
@@ -168,6 +176,12 @@ class ConversationAuthorizationControllerTest {
 
         @Override
         public void authorize(String tokenId, String toolId, Duration ttl) {
+            this.authorizedTtl = ttl;
+        }
+
+        @Override
+        public boolean consume(String tokenId, String toolId) {
+            return exists;
         }
 
         @Override

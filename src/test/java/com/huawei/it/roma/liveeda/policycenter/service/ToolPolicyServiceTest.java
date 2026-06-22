@@ -30,6 +30,16 @@ class ToolPolicyServiceTest {
     }
 
     @Test
+    void acceptsPerCallAuthMode() {
+        CapturingToolPolicyRepository repository = new CapturingToolPolicyRepository();
+        ToolPolicyService service = new ToolPolicyService(repository);
+
+        service.replacePolicies("agent-a", List.of(new ToolPolicyUpdate("tool-x", AuthMode.PER_CALL_AUTH_REQUIRED)));
+
+        assertThat(repository.saved).containsExactly(new ToolPolicy("agent-a", "tool-x", AuthMode.PER_CALL_AUTH_REQUIRED));
+    }
+
+    @Test
     void rejectsDuplicateToolIds() {
         ToolPolicyService service = new ToolPolicyService(new CapturingToolPolicyRepository());
 

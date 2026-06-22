@@ -52,6 +52,9 @@ Agent 和每个已绑定 Tool 都使用统一的 `accessScope`：
    - `USER_AUTH_REQUIRED` 或历史空标签：查询 Redis 当前对话授权。
    - Redis 命中：`ALLOW + CONVERSATION_AUTHORIZED`。
    - Redis 未命中：`AUTHORIZATION_REQUIRED + USER_AUTHORIZATION_REQUIRED`。
+   - `PER_CALL_AUTH_REQUIRED`：查询并消费 Redis 一次性授权。
+   - 一次性授权命中：`ALLOW + PER_CALL_AUTHORIZED`，并删除授权记录。
+   - 一次性授权未命中：`AUTHORIZATION_REQUIRED + PER_CALL_AUTHORIZATION_REQUIRED`。
 
 Tool 运行时决策不查询 Agent 的 `accessScope`。
 

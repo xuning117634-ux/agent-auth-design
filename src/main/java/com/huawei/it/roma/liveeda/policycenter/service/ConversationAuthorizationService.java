@@ -29,13 +29,30 @@ public class ConversationAuthorizationService {
     private final ToolPolicyRepository policyRepository;
     private final ConversationAuthorizationStore authorizationStore;
     private final Duration authorizationTtl;
+    private final Duration maxAuthorizationTtl;
     private final AuditLogger auditLogger;
 
     public ConversationAuthorizationService(
             ToolPolicyRepository policyRepository,
             ConversationAuthorizationStore authorizationStore,
             @Value("${policy-center.authorization.ttl:7d}") Duration authorizationTtl) {
-        this(policyRepository, authorizationStore, authorizationTtl, NoopAuditLogger.INSTANCE);
+        this(policyRepository, authorizationStore, authorizationTtl, Duration.ofDays(30), NoopAuditLogger.INSTANCE);
+    }
+
+    public ConversationAuthorizationService(
+            ToolPolicyRepository policyRepository,
+            ConversationAuthorizationStore authorizationStore,
+            Duration authorizationTtl,
+            Duration maxAuthorizationTtl) {
+        this(policyRepository, authorizationStore, authorizationTtl, maxAuthorizationTtl, NoopAuditLogger.INSTANCE);
+    }
+
+    public ConversationAuthorizationService(
+            ToolPolicyRepository policyRepository,
+            ConversationAuthorizationStore authorizationStore,
+            Duration authorizationTtl,
+            AuditLogger auditLogger) {
+        this(policyRepository, authorizationStore, authorizationTtl, Duration.ofDays(30), auditLogger);
     }
 
     @Autowired
@@ -43,15 +60,22 @@ public class ConversationAuthorizationService {
             ToolPolicyRepository policyRepository,
             ConversationAuthorizationStore authorizationStore,
             @Value("${policy-center.authorization.ttl:7d}") Duration authorizationTtl,
+            @Value("${policy-center.authorization.max-ttl:30d}") Duration maxAuthorizationTtl,
             AuditLogger auditLogger) {
         this.policyRepository = policyRepository;
         this.authorizationStore = authorizationStore;
         this.authorizationTtl = authorizationTtl;
+        this.maxAuthorizationTtl = maxAuthorizationTtl;
         this.auditLogger = auditLogger;
     }
 
     public ConversationAuthorizationResult authorize(String tokenIdRaw, String toolId) {
+        return authorize(tokenIdRaw, toolId, null);
+    }
+
+    public ConversationAuthorizationResult authorize(String tokenIdRaw, String toolId, Long expiresInSeconds) {
         TokenId tokenId = parseForRequest(tokenIdRaw);
+        Duration ttl = effectiveTtl(expiresInSeconds);
         ToolPolicy policy = findPolicy(tokenId, toolId)
                 .orElseThrow(() -> new ApiException(ErrorCode.TOOL_NOT_BOUND, "tool is not bound"));
 
@@ -60,7 +84,7 @@ public class ConversationAuthorizationService {
         }
 
         try {
-            authorizationStore.authorize(tokenId.raw(), toolId, authorizationTtl);
+            authorizationStore.authorize(tokenId.raw(), toolId, ttl);
         } catch (RuntimeException exception) {
             throw authorizationStoreUnavailable(
                     exception,
@@ -73,7 +97,12 @@ public class ConversationAuthorizationService {
     }
 
     public BatchConversationAuthorizationResult authorizeBatch(String tokenIdRaw, List<String> toolIds) {
+        return authorizeBatch(tokenIdRaw, toolIds, null);
+    }
+
+    public BatchConversationAuthorizationResult authorizeBatch(String tokenIdRaw, List<String> toolIds, Long expiresInSeconds) {
         TokenId tokenId = parseForRequest(tokenIdRaw);
+        Duration ttl = effectiveTtl(expiresInSeconds);
         List<String> distinctToolIds = validateAndNormalizeToolIds(toolIds);
 
         for (String toolId : distinctToolIds) {
@@ -86,7 +115,7 @@ public class ConversationAuthorizationService {
 
         try {
             for (String toolId : distinctToolIds) {
-                authorizationStore.authorize(tokenId.raw(), toolId, authorizationTtl);
+                authorizationStore.authorize(tokenId.raw(), toolId, ttl);
             }
         } catch (RuntimeException exception) {
             throw authorizationStoreUnavailable(
@@ -104,6 +133,20 @@ public class ConversationAuthorizationService {
                 tokenId.raw(),
                 distinctToolIds.size(),
                 distinctToolIds);
+    }
+
+    private Duration effectiveTtl(Long expiresInSeconds) {
+        if (expiresInSeconds == null) {
+            return authorizationTtl;
+        }
+        if (expiresInSeconds <= 0) {
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "expiresInSeconds must be greater than 0");
+        }
+        Duration ttl = Duration.ofSeconds(expiresInSeconds);
+        if (ttl.compareTo(maxAuthorizationTtl) > 0) {
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "expiresInSeconds must not exceed max ttl");
+        }
+        return ttl;
     }
 
     public AuthorizationStatus status(String tokenIdRaw, String toolId) {

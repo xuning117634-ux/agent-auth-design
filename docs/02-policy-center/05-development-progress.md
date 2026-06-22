@@ -38,9 +38,9 @@
 | F03 | tokenId 解析与校验 | 解析 `agentId:userId:conversationId`，校验字段数量、非空和分隔符约束 | F02 | 场景 6、22 | 已完成 | `TokenId`、`TokenIdTest` |
 | F04 | `agent_tool_policy` 数据库模型与仓储 | 手动建表 SQL、实体或记录模型、唯一约束、按 Agent 与工具查询 | F01、MySQL | 场景 1-2、5、7、9-13、18-19 | 进行中 | `sql/policy-center-schema.sql`、MyBatis Mapper 和 Repository 已实现；待 MySQL 集成验证 |
 | F05 | Agent 工具策略整份覆盖 | 在单个事务内新增、更新和解绑，默认空标签为 `USER_AUTH_REQUIRED` | F02、F04 | 场景 9-13 | 进行中 | `ToolPolicyService`、`AdminToolPolicyController` 和测试已实现；待 MySQL 事务集成验证 |
-| F06 | 三态授权决策引擎 | 按绑定、标签和当前对话授权返回 `ALLOW`、`AUTHORIZATION_REQUIRED` 或 `DENY` | F02-F04、F07 | 场景 1-8 | 已完成 | `AuthorizationDecisionServiceTest` 覆盖未绑定、无需授权、命中、未命中、非法 tokenId、DB/Redis 异常 |
-| F07 | Redis 当前对话授权 | 操作 `authz:{tokenId}:{toolId}`，授权 Key TTL 7 天，本地单机开发并保留 Redis Cluster 配置 | F01、Spring Data Redis + Lettuce | 场景 3-4、8、14-15、20-22 | 进行中 | `RedisConversationAuthorizationStore` 已实现；待本地 Redis 集成验证 |
-| F08 | 用户授权确认与幂等写入 | 重新检查工具策略，幂等写入授权，拒绝未绑定或无需授权工具 | F03-F05、F07 | 场景 14-15、18-19 | 进行中 | `ConversationAuthorizationServiceTest` 覆盖确认、未绑定、无需授权；待 Redis 集成验证 |
+| F06 | 三态授权决策引擎 | 按绑定、标签和当前对话授权返回 `ALLOW`、`AUTHORIZATION_REQUIRED` 或 `DENY` | F02-F04、F07 | 场景 1-8、5A-5B | 已完成 | `AuthorizationDecisionServiceTest` 覆盖未绑定、无需授权、命中、未命中、每次授权消费、非法 tokenId、DB/Redis 异常 |
+| F07 | Redis 当前对话授权 | 操作 `authz:{tokenId}:{toolId}`，支持默认 TTL、自定义 TTL 和每次授权消费，本地单机开发并保留 Redis Cluster 配置 | F01、Spring Data Redis + Lettuce | 场景 3-4、8、14-15、20-22、14A-14C | 进行中 | `RedisConversationAuthorizationStore` 已实现 exists/authorize/consume/cleanup；待本地 Redis 集成验证 |
+| F08 | 用户授权确认与幂等写入 | 重新检查工具策略，幂等写入授权，拒绝未绑定或无需授权工具，支持 `expiresInSeconds` | F03-F05、F07 | 场景 14-15、18-19、14A-14C | 进行中 | `ConversationAuthorizationServiceTest` 覆盖确认、未绑定、无需授权、每次授权和 TTL 校验；待 Redis 集成验证 |
 | F09 | 授权状态查询 | 查询当前对话授权，区分 `AUTHORIZED` 与 `NOT_AUTHORIZED` | F03、F07 | 场景 16-17 | 进行中 | 服务和 Controller 已实现并测试；待 Redis 集成验证 |
 | F10 | 对话授权清理 | 使用 `SCAN MATCH authz:{tokenId}:*` 分批清理全部工具授权，支持重复清理 | F03、F07 | 场景 20-21 | 进行中 | cleanup 接口和 Redis SCAN 适配已实现；待 Redis 集成验证 |
 | F11 | 统一异常处理与 fail-closed | 参数错误、数据库异常、Redis 异常和内部错误的统一映射 | F02、F04、F07 | 场景 6-8、12、18-21、23 | 已完成 | `GlobalExceptionHandler`、服务 fail-closed 测试、HTTP 错误响应测试 |
@@ -200,7 +200,7 @@ GET /internal/agents/{agentId}/users/{userId}/tools
 | B02 | 数据库和建表方式 | F04-F06、F08、I01-I03 | 已解除 | MySQL + 手动执行 SQL |
 | B03 | Redis 客户端和部署模式 | F06-F11、I01、I03-I06 | 已解除 | Spring Data Redis + Lettuce，本地单机开发，生产保留 Cluster 配置 |
 | B04 | 内部接口认证方式 | F12、F14、I01、I03-I11 | 已解除 | V1 暂不实现接口认证 |
-| B05 | 授权记录物理安全 TTL | F07-F10 | 已解除 | 授权 Key TTL 7 天 |
+| B05 | 授权记录物理安全 TTL | F07-F10 | 已解除 | 默认 7 天，授权确认可传 `expiresInSeconds`，最大值由 `policy-center.authorization.max-ttl` 控制 |
 | B06 | 对话结束与迟到授权并发处理 | F08、F10、I03、I05-I06 | 已解除 | V1 信任业务后端不会迟到确认，不维护关闭状态 |
 
 阻塞状态只影响表中列出的范围；不依赖该决策的设计和实现可以继续推进。
@@ -247,3 +247,4 @@ GET /internal/agents/{agentId}/users/{userId}/tools
 | 2026-06-10 | 新增人员策略配置与运行时 Tool 用户策略开关 | F14 进入进行中，I07-I11 已实现 | 新增人员策略管理、Agent 访问判断、用户可访问 Agent/工具查询和运行时 `USER_TOOL_ACCESS_DENIED`；`mvn test` 通过，46 tests，0 failures |
 | 2026-06-11 | 人员策略改为统一访问范围模型 | F14 标记已完成 | Agent 和 Tool 使用 `PUBLIC / RESTRICTED` 与白名单；`mvn test` 通过 48 tests，真实 MySQL/Redis HTTP 验证 35/35 通过 |
 | 2026-06-11 | 人员策略支持批量工号输入 | F14 保持已完成 | `userId` 支持逗号、分号和换行批量输入并自动去重；合并最新主分支后 `mvn test` 通过 63 tests，真实 HTTP 验证 37/37 通过 |
+| 2026-06-22 | 工具授权模式扩展为每次授权和自定义 TTL | F06 保持已完成，F07-F08 保持进行中 | 新增 `PER_CALL_AUTH_REQUIRED`、`PER_CALL_AUTHORIZED`、`PER_CALL_AUTHORIZATION_REQUIRED` 和 `expiresInSeconds`；`mvn test` 通过，89 tests，0 failures |

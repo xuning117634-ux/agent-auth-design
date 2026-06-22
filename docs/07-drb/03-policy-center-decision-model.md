@@ -49,12 +49,14 @@ flowchart TD
     bound -->|"是"| mode{"authMode"}
     mode -->|"NO_AUTH_REQUIRED"| allow["ALLOW<br/>不需要查授权记录"]
     mode -->|"USER_AUTH_REQUIRED"| checkGrant["继续检查 ConversationGrant"]
+    mode -->|"PER_CALL_AUTH_REQUIRED"| consumeGrant["消费一次性 ConversationGrant"]
 ```
 
 工具标签模型决定是否需要查授权记录：
 
 - `NO_AUTH_REQUIRED` 表示工具已绑定且无需用户确认。
-- `USER_AUTH_REQUIRED` 表示工具已绑定，但还要看当前对话是否已经授权。
+- `USER_AUTH_REQUIRED` 表示工具已绑定，但还要看当前对话是否已经授权；授权记录在 TTL 内持续有效。
+- `PER_CALL_AUTH_REQUIRED` 表示工具每次调用都要用户确认；授权记录只允许下一次重试，命中后立即消费。
 
 ### 1.3 授权记录建模图
 
@@ -75,6 +77,7 @@ flowchart TB
 - 相同用户、相同 Agent，但不同 `conversationId`，不会共享授权记录。
 - 相同 `tokenId`，不同 `toolId`，也不会共享授权记录。
 - 授权记录不存在时，策略中心不能把它解释成允许。
+- 对每次授权工具，授权记录存在也只能放行一次，放行时同步删除。
 
 ## 2. 策略中心掌握哪两类事实
 
@@ -89,7 +92,7 @@ flowchart TB
 
 - 当前 Agent 是否绑定了这个工具。
 - 当前用户是否能访问这个工具。
-- 这个工具是无需授权，还是需要用户授权。
+- 这个工具是无需授权、需要用户授权，还是每次调用都需要授权。
 
 授权事实只有一个核心问题：
 
@@ -125,11 +128,14 @@ flowchart TD
     bound -->|"否"| denyBound["DENY<br/>未绑定工具不能授权"]
     bound -->|"是"| userAccess{"当前用户可访问该工具？"}
     userAccess -->|"否"| denyUser["DENY<br/>用户无权访问"]
-    userAccess -->|"是"| mode{"工具是否无需授权？"}
-    mode -->|"是"| allowNoAuth["ALLOW<br/>无需用户确认"]
-    mode -->|"否"| grant{"本次对话已授权？"}
+    userAccess -->|"是"| mode{"工具授权标签是什么？"}
+    mode -->|"NO_AUTH_REQUIRED"| allowNoAuth["ALLOW<br/>无需用户确认"]
+    mode -->|"USER_AUTH_REQUIRED"| grant{"本次对话已授权？"}
+    mode -->|"PER_CALL_AUTH_REQUIRED"| perCall{"一次性授权存在？"}
     grant -->|"是"| allowGrant["ALLOW<br/>当前对话已授权"]
     grant -->|"否"| required["AUTHORIZATION_REQUIRED<br/>需要用户确认"]
+    perCall -->|"是"| allowPerCall["ALLOW<br/>消费后放行一次"]
+    perCall -->|"否"| requiredPerCall["AUTHORIZATION_REQUIRED<br/>每次调用需确认"]
 
     token -.->|"事实不可用或系统异常"| fail["DENY<br/>fail-closed"]
     bound -.->|"策略事实不可用"| fail
@@ -162,7 +168,7 @@ flowchart LR
 | 决策 | 什么时候返回 | MCP 网关应做什么 |
 | --- | --- | --- |
 | `ALLOW` | 工具无需授权，或当前对话已经授权 | 继续获取 Cookie 并调用 MCP Server |
-| `AUTHORIZATION_REQUIRED` | 工具已绑定、用户可访问、但当前对话未授权 | 返回未授权信息，让 Agent 进入人在回路 |
+| `AUTHORIZATION_REQUIRED` | 工具已绑定、用户可访问、但当前对话未授权，或每次授权工具缺少一次性授权 | 返回未授权信息，让 Agent 进入人在回路 |
 | `DENY` | tokenId 非法、工具未绑定、用户无权访问、事实不可用或系统异常 | 终止调用，不获取 Cookie，不调用 MCP Server |
 
 策略中心不保存 Cookie，不调用 MCP Server，不生成 tokenId。它只根据策略事实和授权事实输出决策。
