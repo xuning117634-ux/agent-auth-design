@@ -16,14 +16,15 @@
 | 2 | 管理面前端 | `GET` | `/admin/agents/{agentId}/tool-policies` | 查询 Agent 已绑定的工具策略 |
 | 3 | 管理面前端 | `PUT` | `/admin/agents/{agentId}/tool-policies` | 整份保存 Agent 工具策略 |
 | 4 | 业务后端 | `POST` | `/internal/conversation-authorizations` | 确认当前对话工具授权 |
-| 5 | Agent | `POST` | `/internal/conversation-authorizations/status` | 轮询当前对话授权状态 |
-| 6 | 业务后端 | `POST` | `/internal/conversation-authorizations/cleanup` | 清理当前对话全部工具授权 |
-| 7 | 外部受信调用方 | `POST` | `/external/conversation-authorizations/cleanup` | 按 agentId/userId/conversationId 清理对话授权 |
-| 8 | 管理面前端 | `GET` | `/admin/agents/{agentId}/user-policies` | 查询 Agent 人员策略 |
-| 9 | 管理面前端 | `PUT` | `/admin/agents/{agentId}/user-policies` | 整份保存 Agent 人员策略 |
-| 10 | 业务后端 / Agent | `POST` | `/internal/agent-access-decisions` | 判断用户是否可访问 Agent |
-| 11 | 业务后端 | `GET` | `/internal/users/{userId}/agents` | 查询用户可访问 Agent |
-| 12 | 业务后端 / Agent | `GET` | `/internal/agents/{agentId}/users/{userId}/tools` | 查询用户可访问工具 |
+| 5 | 业务后端 | `POST` | `/internal/conversation-authorizations/batch` | 批量确认当前对话工具授权 |
+| 6 | Agent | `POST` | `/internal/conversation-authorizations/status` | 轮询当前对话授权状态 |
+| 7 | 业务后端 | `POST` | `/internal/conversation-authorizations/cleanup` | 清理当前对话全部工具授权 |
+| 8 | 外部受信调用方 | `POST` | `/external/conversation-authorizations/cleanup` | 按 agentId/userId/conversationId 清理对话授权 |
+| 9 | 管理面前端 | `GET` | `/admin/agents/{agentId}/user-policies` | 查询 Agent 人员策略 |
+| 10 | 管理面前端 | `PUT` | `/admin/agents/{agentId}/user-policies` | 整份保存 Agent 人员策略 |
+| 11 | 业务后端 / Agent | `POST` | `/internal/agent-access-decisions` | 判断用户是否可访问 Agent |
+| 12 | 业务后端 | `GET` | `/internal/users/{userId}/agents` | 查询用户可访问 Agent |
+| 13 | 业务后端 / Agent | `GET` | `/internal/agents/{agentId}/users/{userId}/tools` | 查询用户可访问工具 |
 
 V1 暂未实现接口认证。生产接入前必须由内部网络、上游网关或后续认证机制限制调用方，尤其不能将 `/internal/**` 直接暴露到公网。
 
@@ -118,7 +119,20 @@ X-Trace-Id: trace-20260609-001
 }
 ```
 
-### 3.3 需要用户授权
+### 3.3 每次授权工具已确认
+
+```json
+{
+  "decision": "ALLOW",
+  "reason": "PER_CALL_AUTHORIZED"
+}
+```
+
+该结果表示 `PER_CALL_AUTH_REQUIRED` 工具的一次性授权已被消费，下一次调用同一工具仍会重新要求用户确认。
+
+### 3.4 需要用户授权
+
+普通需要授权：
 
 ```json
 {
@@ -127,9 +141,18 @@ X-Trace-Id: trace-20260609-001
 }
 ```
 
+每次授权：
+
+```json
+{
+  "decision": "AUTHORIZATION_REQUIRED",
+  "reason": "PER_CALL_AUTHORIZATION_REQUIRED"
+}
+```
+
 MCP 网关必须停止工具调用并向 Agent 返回“未授权 + `toolId`”，不得获取 Cookie 或调用 MCP Server。
 
-### 3.4 工具未绑定
+### 3.5 工具未绑定
 
 ```json
 {
@@ -140,7 +163,7 @@ MCP 网关必须停止工具调用并向 Agent 返回“未授权 + `toolId`”�
 
 该结果不能进入人在回路授权流程。
 
-### 3.5 tokenId 非法
+### 3.6 tokenId 非法
 
 ```json
 {
@@ -149,7 +172,7 @@ MCP 网关必须停止工具调用并向 Agent 返回“未授权 + `toolId`”�
 }
 ```
 
-### 3.6 存储不可用
+### 3.7 存储不可用
 
 策略数据库异常：
 
@@ -177,7 +200,9 @@ Redis 异常：
 | --- | --- |
 | `ALLOW` | `NO_AUTH_REQUIRED` |
 | `ALLOW` | `CONVERSATION_AUTHORIZED` |
+| `ALLOW` | `PER_CALL_AUTHORIZED` |
 | `AUTHORIZATION_REQUIRED` | `USER_AUTHORIZATION_REQUIRED` |
+| `AUTHORIZATION_REQUIRED` | `PER_CALL_AUTHORIZATION_REQUIRED` |
 | `DENY` | `TOOL_NOT_BOUND` |
 | `DENY` | `USER_TOOL_ACCESS_DENIED` |
 | `DENY` | `INVALID_TOKEN_ID` |
@@ -215,6 +240,11 @@ X-Trace-Id: trace-20260609-002
     {
       "toolId": "crm.customer.delete",
       "authMode": "USER_AUTH_REQUIRED",
+      "updatedAt": "2026-06-09T10:05:00Z"
+    },
+    {
+      "toolId": "crm.trade.submit",
+      "authMode": "PER_CALL_AUTH_REQUIRED",
       "updatedAt": "2026-06-09T10:05:00Z"
     }
   ],
@@ -263,6 +293,10 @@ X-Trace-Id: trace-20260609-003
     {
       "toolId": "crm.customer.delete",
       "authMode": "USER_AUTH_REQUIRED"
+    },
+    {
+      "toolId": "crm.trade.submit",
+      "authMode": "PER_CALL_AUTH_REQUIRED"
     }
   ]
 }
@@ -292,7 +326,7 @@ X-Trace-Id: trace-20260609-003
 - 未包含在本次 `tools` 中的旧绑定会被删除。
 - 同一请求中的 `toolId` 不能重复。
 - `authMode` 缺失或为 `null` 时按 `USER_AUTH_REQUIRED` 保存。
-- 当前合法枚举只有 `NO_AUTH_REQUIRED`、`USER_AUTH_REQUIRED`。
+- 当前合法枚举为 `NO_AUTH_REQUIRED`、`USER_AUTH_REQUIRED`、`PER_CALL_AUTH_REQUIRED`。
 - 保存操作在单个数据库事务内完成。
 
 重复 `toolId` 错误示例：
@@ -324,7 +358,8 @@ X-Trace-Id: trace-20260609-004
 
 {
   "tokenId": "agent-a:user-42:conversation-99",
-  "toolId": "crm.customer.delete"
+  "toolId": "crm.customer.delete",
+  "expiresInSeconds": 3600
 }
 ```
 
@@ -340,10 +375,12 @@ X-Trace-Id: trace-20260609-004
 
 规则：
 
-- 只有已绑定且标签为 `USER_AUTH_REQUIRED` 的工具可以写入授权。
+- 只有已绑定且标签为 `USER_AUTH_REQUIRED` 或 `PER_CALL_AUTH_REQUIRED` 的工具可以写入授权。
 - 重复调用是幂等的，仍返回 `AUTHORIZED`。
 - 当前实现写入 Redis Key：`authz:{tokenId}:{toolId}`。
-- 当前物理安全 TTL 为 7 天；业务后端仍必须在对话结束时调用清理接口。
+- `expiresInSeconds` 可选，表示授权记录相对有效期；缺失时使用默认 TTL。
+- `USER_AUTH_REQUIRED` 在 TTL 内持续允许；`PER_CALL_AUTH_REQUIRED` 只允许下一次重试，命中后会被策略中心消费删除。
+- 业务后端仍必须在对话结束时调用清理接口。
 - 用户确认真实性及授权页面 1 分钟有效期由受信任业务后端保证。
 
 工具未绑定：
@@ -367,6 +404,49 @@ X-Trace-Id: trace-20260609-004
 ```
 
 以上两种错误均返回 HTTP `409`。
+
+### 6.1 批量确认当前对话授权
+
+**调用方：** 业务后端
+
+```http
+POST /internal/conversation-authorizations/batch
+tokenid: agent-a:user-42:conversation-99
+Content-Type: application/json
+```
+
+请求示例：
+
+```json
+{
+  "toolIds": [
+    "crm.customer.delete",
+    "crm.trade.submit"
+  ],
+  "expiresInSeconds": 3600
+}
+```
+
+成功响应：
+
+```json
+{
+  "status": "AUTHORIZED",
+  "tokenId": "agent-a:user-42:conversation-99",
+  "toolCount": 2,
+  "toolIds": [
+    "crm.customer.delete",
+    "crm.trade.submit"
+  ]
+}
+```
+
+规则：
+
+- `toolIds` 必须非空，元素不能空白，且不能重复。
+- 批量接口与单工具授权确认使用相同的标签和 TTL 规则。
+- 整批先校验再写入；任一工具不满足条件时整批失败。
+- `PER_CALL_AUTH_REQUIRED` 工具写入的是一次性授权记录。
 
 ## 7. 查询当前对话授权状态
 

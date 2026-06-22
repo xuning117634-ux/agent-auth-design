@@ -77,6 +77,39 @@ class AuthorizationDecisionServiceTest {
     }
 
     @Test
+    void requestsPerCallAuthorizationWhenGrantIsMissing() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.PER_CALL_AUTH_REQUIRED);
+        FakeAuthorizationStore grants = new FakeAuthorizationStore(false);
+        AuthorizationDecisionService service = new AuthorizationDecisionService(policies, grants);
+
+        AuthorizationDecision decision = service.decide("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(decision.decision()).isEqualTo(Decision.AUTHORIZATION_REQUIRED);
+        assertThat(decision.reason()).isEqualTo(DecisionReason.PER_CALL_AUTHORIZATION_REQUIRED);
+        assertThat(grants.consumeCalls).isOne();
+        assertThat(grants.existsCalls).isZero();
+    }
+
+    @Test
+    void consumesPerCallAuthorizationWhenGrantExists() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.PER_CALL_AUTH_REQUIRED);
+        FakeAuthorizationStore grants = new FakeAuthorizationStore(false);
+        grants.consumeResult = true;
+        AuthorizationDecisionService service = new AuthorizationDecisionService(policies, grants);
+
+        AuthorizationDecision firstDecision = service.decide("agent-a:user-42:conversation-99", "tool-x");
+        grants.consumeResult = false;
+        AuthorizationDecision secondDecision = service.decide("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(firstDecision.decision()).isEqualTo(Decision.ALLOW);
+        assertThat(firstDecision.reason()).isEqualTo(DecisionReason.PER_CALL_AUTHORIZED);
+        assertThat(secondDecision.decision()).isEqualTo(Decision.AUTHORIZATION_REQUIRED);
+        assertThat(secondDecision.reason()).isEqualTo(DecisionReason.PER_CALL_AUTHORIZATION_REQUIRED);
+        assertThat(grants.consumeCalls).isEqualTo(2);
+        assertThat(grants.existsCalls).isZero();
+    }
+
+    @Test
     void skipsToolUserPolicyWhenEvaluatorAllowsTool() {
         FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.NO_AUTH_REQUIRED);
         FakeAuthorizationStore grants = new FakeAuthorizationStore(false);
@@ -205,6 +238,18 @@ class AuthorizationDecisionServiceTest {
     }
 
     @Test
+    void perCallConsumeFailureFailsClosed() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.PER_CALL_AUTH_REQUIRED);
+        FakeAuthorizationStore grants = FakeAuthorizationStore.failing();
+        AuthorizationDecisionService service = new AuthorizationDecisionService(policies, grants);
+
+        AuthorizationDecision decision = service.decide("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(decision.decision()).isEqualTo(Decision.DENY);
+        assertThat(decision.reason()).isEqualTo(DecisionReason.AUTHORIZATION_STORE_UNAVAILABLE);
+    }
+
+    @Test
     void logsOriginalExceptionWhenAuthorizationStoreFailsClosed() {
         FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.USER_AUTH_REQUIRED);
         FakeAuthorizationStore grants = FakeAuthorizationStore.failing();
@@ -290,6 +335,8 @@ class AuthorizationDecisionServiceTest {
         private final boolean exists;
         private final boolean fail;
         private int existsCalls;
+        private int consumeCalls;
+        private boolean consumeResult;
 
         FakeAuthorizationStore(boolean exists) {
             this(exists, false);
@@ -311,6 +358,15 @@ class AuthorizationDecisionServiceTest {
                 throw new IllegalStateException("redis unavailable");
             }
             return exists;
+        }
+
+        @Override
+        public boolean consume(String tokenId, String toolId) {
+            consumeCalls++;
+            if (fail) {
+                throw new IllegalStateException("redis unavailable");
+            }
+            return consumeResult;
         }
 
         @Override

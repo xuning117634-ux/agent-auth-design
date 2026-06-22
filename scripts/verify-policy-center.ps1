@@ -11,6 +11,7 @@ $conversationId = "verify-conversation-$runId"
 $tokenId = "$agentId`:$userId`:$conversationId"
 $noAuthToolId = "verify-no-auth-$runId"
 $userAuthToolId = "verify-user-auth-$runId"
+$perCallToolId = "verify-per-call-$runId"
 $unboundToolId = "verify-unbound-$runId"
 
 $script:passCount = 0
@@ -202,21 +203,25 @@ try {
         -Body @{
             tools = @(
                 @{ toolId = $noAuthToolId; authMode = "NO_AUTH_REQUIRED" },
-                @{ toolId = $userAuthToolId; authMode = "USER_AUTH_REQUIRED" }
+                @{ toolId = $userAuthToolId; authMode = "USER_AUTH_REQUIRED" },
+                @{ toolId = $perCallToolId; authMode = "PER_CALL_AUTH_REQUIRED" }
             )
         }
-    Assert-Equal "Saved tool count" $saveResponse.toolCount 2
+    Assert-Equal "Saved tool count" $saveResponse.toolCount 3
 
     $policies = Invoke-PolicyApi -Method GET `
         -Path "/admin/agents/$agentId/tool-policies" `
         -Body $null
-    Assert-Equal "Queried tool count" $policies.tools.Count 2
+    Assert-Equal "Queried tool count" $policies.tools.Count 3
     Assert-Equal "No-auth policy mode" `
         ($policies.tools | Where-Object toolId -eq $noAuthToolId).authMode `
         "NO_AUTH_REQUIRED"
     Assert-Equal "User-auth policy mode" `
         ($policies.tools | Where-Object toolId -eq $userAuthToolId).authMode `
         "USER_AUTH_REQUIRED"
+    Assert-Equal "Per-call policy mode" `
+        ($policies.tools | Where-Object toolId -eq $perCallToolId).authMode `
+        "PER_CALL_AUTH_REQUIRED"
 
     $noAuthDecision = Invoke-PolicyApi -Method POST `
         -Path "/internal/authorization-decisions" `
@@ -230,6 +235,12 @@ try {
     Assert-Equal "User-auth initial decision" $requiredDecision.decision "AUTHORIZATION_REQUIRED"
     Assert-Equal "User-auth initial reason" $requiredDecision.reason "USER_AUTHORIZATION_REQUIRED"
 
+    $perCallRequiredDecision = Invoke-PolicyApi -Method POST `
+        -Path "/internal/authorization-decisions" `
+        -Body @{ tokenId = $tokenId; toolId = $perCallToolId }
+    Assert-Equal "Per-call initial decision" $perCallRequiredDecision.decision "AUTHORIZATION_REQUIRED"
+    Assert-Equal "Per-call initial reason" $perCallRequiredDecision.reason "PER_CALL_AUTHORIZATION_REQUIRED"
+
     $initialStatus = Invoke-PolicyApi -Method POST `
         -Path "/internal/conversation-authorizations/status" `
         -Body @{ tokenId = $tokenId; toolId = $userAuthToolId }
@@ -237,7 +248,7 @@ try {
 
     $authorization = Invoke-PolicyApi -Method POST `
         -Path "/internal/conversation-authorizations" `
-        -Body @{ tokenId = $tokenId; toolId = $userAuthToolId }
+        -Body @{ tokenId = $tokenId; toolId = $userAuthToolId; expiresInSeconds = 3600 }
     Assert-Equal "Authorization confirmation" $authorization.status "AUTHORIZED"
 
     $authorizedStatus = Invoke-PolicyApi -Method POST `
@@ -251,6 +262,23 @@ try {
     Assert-Equal "Authorized decision" $authorizedDecision.decision "ALLOW"
     Assert-Equal "Authorized reason" $authorizedDecision.reason "CONVERSATION_AUTHORIZED"
 
+    $perCallAuthorization = Invoke-PolicyApi -Method POST `
+        -Path "/internal/conversation-authorizations" `
+        -Body @{ tokenId = $tokenId; toolId = $perCallToolId; expiresInSeconds = 60 }
+    Assert-Equal "Per-call authorization confirmation" $perCallAuthorization.status "AUTHORIZED"
+
+    $perCallAuthorizedDecision = Invoke-PolicyApi -Method POST `
+        -Path "/internal/authorization-decisions" `
+        -Body @{ tokenId = $tokenId; toolId = $perCallToolId }
+    Assert-Equal "Per-call authorized decision" $perCallAuthorizedDecision.decision "ALLOW"
+    Assert-Equal "Per-call authorized reason" $perCallAuthorizedDecision.reason "PER_CALL_AUTHORIZED"
+
+    $perCallSecondDecision = Invoke-PolicyApi -Method POST `
+        -Path "/internal/authorization-decisions" `
+        -Body @{ tokenId = $tokenId; toolId = $perCallToolId }
+    Assert-Equal "Per-call second decision" $perCallSecondDecision.decision "AUTHORIZATION_REQUIRED"
+    Assert-Equal "Per-call second reason" $perCallSecondDecision.reason "PER_CALL_AUTHORIZATION_REQUIRED"
+
     $externalCleanup = Invoke-PolicyApi -Method POST `
         -Path "/external/conversation-authorizations/cleanup" `
         -Body @{ agentId = $agentId; userId = $userId; conversationId = $conversationId }
@@ -263,7 +291,7 @@ try {
 
     $authorizationAfterExternalCleanup = Invoke-PolicyApi -Method POST `
         -Path "/internal/conversation-authorizations" `
-        -Body @{ tokenId = $tokenId; toolId = $userAuthToolId }
+        -Body @{ tokenId = $tokenId; toolId = $userAuthToolId; expiresInSeconds = 3600 }
     Assert-Equal "Authorization after external cleanup" $authorizationAfterExternalCleanup.status "AUTHORIZED"
 
     $invalidTokenDecision = Invoke-PolicyApi -Method POST `

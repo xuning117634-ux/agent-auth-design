@@ -114,6 +114,11 @@ class AuthorizationDecisionControllerTest {
         }
 
         @Override
+        public boolean consume(String tokenId, String toolId) {
+            return exists;
+        }
+
+        @Override
         public void authorize(String tokenId, String toolId, Duration ttl) {
         }
 

@@ -27,14 +27,14 @@ public class ConversationAuthorizationController {
 
     @PostMapping("/internal/conversation-authorizations")
     ConversationAuthorizationResult authorize(@Valid @RequestBody ConversationAuthorizationRequest request) {
-        return service.authorize(request.tokenId(), request.toolId());
+        return service.authorize(request.tokenId(), request.toolId(), request.expiresInSeconds());
     }
 
     @PostMapping("/internal/conversation-authorizations/batch")
     BatchConversationAuthorizationResult authorizeBatch(
             @RequestHeader(value = "tokenid", required = false) String tokenid,
             @Valid @RequestBody BatchConversationAuthorizationRequest request) {
-        return service.authorizeBatch(tokenid, request.toolIds());
+        return service.authorizeBatch(tokenid, request.toolIds(), request.expiresInSeconds());
     }
 
     @PostMapping("/internal/conversation-authorizations/status")

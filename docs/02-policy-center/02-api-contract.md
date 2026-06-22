@@ -76,7 +76,9 @@ POST /internal/authorization-decisions
 | --- | --- |
 | `ALLOW` | `NO_AUTH_REQUIRED` |
 | `ALLOW` | `CONVERSATION_AUTHORIZED` |
+| `ALLOW` | `PER_CALL_AUTHORIZED` |
 | `AUTHORIZATION_REQUIRED` | `USER_AUTHORIZATION_REQUIRED` |
+| `AUTHORIZATION_REQUIRED` | `PER_CALL_AUTHORIZATION_REQUIRED` |
 | `DENY` | `TOOL_NOT_BOUND` |
 | `DENY` | `USER_TOOL_ACCESS_DENIED` |
 | `DENY` | `INVALID_TOKEN_ID` |
@@ -115,6 +117,11 @@ GET /admin/agents/{agentId}/tool-policies
       "toolId": "tool-b",
       "authMode": "USER_AUTH_REQUIRED",
       "updatedAt": "2026-06-09T10:00:00Z"
+    },
+    {
+      "toolId": "tool-c",
+      "authMode": "PER_CALL_AUTH_REQUIRED",
+      "updatedAt": "2026-06-09T10:00:00Z"
     }
   ],
   "updatedAt": "2026-06-09T10:00:00Z"
@@ -148,6 +155,10 @@ PUT /admin/agents/{agentId}/tool-policies
     {
       "toolId": "tool-b",
       "authMode": "USER_AUTH_REQUIRED"
+    },
+    {
+      "toolId": "tool-c",
+      "authMode": "PER_CALL_AUTH_REQUIRED"
     }
   ]
 }
@@ -191,7 +202,8 @@ POST /internal/conversation-authorizations
 ```json
 {
   "tokenId": "agent-a:user-42:conversation-99",
-  "toolId": "tool-b"
+  "toolId": "tool-b",
+  "expiresInSeconds": 3600
 }
 ```
 
@@ -208,7 +220,12 @@ POST /internal/conversation-authorizations
 规则：
 
 - 写入前重新解析 tokenId，并检查工具仍绑定当前 Agent。
-- 仅 `USER_AUTH_REQUIRED` 或历史空标签的工具可以写入当前对话授权。
+- 仅 `USER_AUTH_REQUIRED`、`PER_CALL_AUTH_REQUIRED` 或历史空标签的工具可以写入当前对话授权。
+- `expiresInSeconds` 可选，表示本次授权记录的相对有效期，单位秒。
+- `expiresInSeconds` 缺失时使用服务配置 `policy-center.authorization.ttl`。
+- `expiresInSeconds` 必须大于 `0`，且不得超过 `policy-center.authorization.max-ttl`，否则返回 `400 + INVALID_REQUEST`。
+- `USER_AUTH_REQUIRED` 的授权记录在 TTL 内持续有效，直到过期或对话清理。
+- `PER_CALL_AUTH_REQUIRED` 的授权记录只允许下一次 MCP 网关鉴权放行；命中后策略中心会消费删除该记录，TTL 只表示用户确认后等待 Agent 重试的最长时间。
 - 重复确认必须幂等返回 `AUTHORIZED`。
 - 工具未绑定返回 `409 + TOOL_NOT_BOUND`。
 - 工具为 `NO_AUTH_REQUIRED` 时返回 `409 + AUTHORIZATION_NOT_REQUIRED`。
@@ -254,6 +271,55 @@ POST /internal/conversation-authorizations/status
 - Agent 每 2 秒调用一次，最多持续 1 分钟。
 - Redis 查询失败返回 `503 + AUTHORIZATION_STORE_UNAVAILABLE`。
 - Agent 查询到 `AUTHORIZED` 后仍必须重新通过 MCP 网关调用工具。
+
+## 批量确认当前对话授权
+
+```http
+POST /internal/conversation-authorizations/batch
+```
+
+调用方：业务后端。
+
+Header：
+
+```http
+tokenid: agent-a:user-42:conversation-99
+```
+
+请求：
+
+```json
+{
+  "toolIds": [
+    "tool-b",
+    "tool-c"
+  ],
+  "expiresInSeconds": 3600
+}
+```
+
+成功响应：
+
+```json
+{
+  "status": "AUTHORIZED",
+  "tokenId": "agent-a:user-42:conversation-99",
+  "toolCount": 2,
+  "toolIds": [
+    "tool-b",
+    "tool-c"
+  ]
+}
+```
+
+规则：
+
+- `toolIds` 必须非空，元素不能空白，且不能重复。
+- `expiresInSeconds` 可选，语义与单工具授权确认一致。
+- 整批先校验再写入；任一工具未绑定、无需授权、tokenId 非法或策略库异常时，整批失败，不写入授权。
+- `USER_AUTH_REQUIRED` 写入普通当前对话授权记录。
+- `PER_CALL_AUTH_REQUIRED` 写入一次性授权记录，下一次 MCP 网关鉴权命中后会被消费。
+- Redis 写入失败返回 `503 + AUTHORIZATION_STORE_UNAVAILABLE`。
 
 ## 清理当前对话授权
 

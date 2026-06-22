@@ -4,5 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 
 public record ConversationAuthorizationRequest(
         @NotBlank String tokenId,
-        @NotBlank String toolId) {
+        @NotBlank String toolId,
+        Long expiresInSeconds) {
 }

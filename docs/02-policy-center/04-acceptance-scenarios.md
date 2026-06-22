@@ -62,6 +62,32 @@ When MCP 网关提交有效 tokenId 和 Tool X
 Then 策略中心按 USER_AUTH_REQUIRED 执行
 ```
 
+### 场景 5A：每次授权且一次性授权未命中
+
+```gherkin
+Given Agent A 已绑定 Tool X
+And authMode 为 PER_CALL_AUTH_REQUIRED
+And authz:{tokenId}:Tool-X 不存在
+When MCP 网关提交 tokenId 和 Tool X
+Then 策略中心返回 AUTHORIZATION_REQUIRED
+And reason 为 PER_CALL_AUTHORIZATION_REQUIRED
+```
+
+### 场景 5B：每次授权命中后消费
+
+```gherkin
+Given Agent A 已绑定 Tool X
+And authMode 为 PER_CALL_AUTH_REQUIRED
+And authz:{tokenId}:Tool-X 已存在
+When MCP 网关第一次提交 tokenId 和 Tool X
+Then 策略中心返回 ALLOW
+And reason 为 PER_CALL_AUTHORIZED
+And authz:{tokenId}:Tool-X 被删除
+When MCP 网关第二次提交相同 tokenId 和 Tool X
+Then 策略中心返回 AUTHORIZATION_REQUIRED
+And reason 为 PER_CALL_AUTHORIZATION_REQUIRED
+```
+
 ### 场景 6：非法 tokenId
 
 ```gherkin
@@ -183,6 +209,41 @@ When 业务后端提交 tokenId 和 Tool X
 Then 策略中心写入 authz:{tokenId}:Tool-X
 And 授权 Key 的 TTL 为 7 天
 And 返回 AUTHORIZED
+```
+
+### 场景 14A：用户确认时指定授权有效期
+
+```gherkin
+Given Tool X 已绑定 Agent A 且 authMode 为 USER_AUTH_REQUIRED
+And 业务后端收到有效的用户同意
+When 业务后端提交 tokenId、Tool X 和 expiresInSeconds = 3600
+Then 策略中心写入 authz:{tokenId}:Tool-X
+And 授权 Key 的 TTL 为 3600 秒
+And 返回 AUTHORIZED
+```
+
+### 场景 14B：每次授权写入一次性授权
+
+```gherkin
+Given Tool X 已绑定 Agent A 且 authMode 为 PER_CALL_AUTH_REQUIRED
+And 业务后端收到有效的用户同意
+When 业务后端提交 tokenId、Tool X 和 expiresInSeconds = 60
+Then 策略中心写入 authz:{tokenId}:Tool-X
+And 授权 Key 的 TTL 为 60 秒
+And 返回 AUTHORIZED
+And 下一次 MCP 网关授权决策命中后会消费该 Key
+```
+
+### 场景 14C：授权有效期非法
+
+```gherkin
+Given Tool X 已绑定 Agent A 且需要用户授权
+When 业务后端提交 expiresInSeconds <= 0
+Then 策略中心返回 INVALID_REQUEST
+And Redis 不写入授权记录
+When 业务后端提交 expiresInSeconds 超过 policy-center.authorization.max-ttl
+Then 策略中心返回 INVALID_REQUEST
+And Redis 不写入授权记录
 ```
 
 ### 场景 15：重复确认
