@@ -13,6 +13,7 @@ import com.huawei.it.roma.liveeda.policycenter.service.UserPolicySaveResult;
 import com.huawei.it.roma.liveeda.policycenter.service.UserPolicyService;
 import com.huawei.it.roma.liveeda.policycenter.service.UserPolicyUpdate;
 import com.huawei.it.roma.liveeda.policycenter.service.UserPolicyView;
+import com.huawei.it.roma.liveeda.policycenter.service.UserIdBatchParser;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,10 +21,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 @RestController
 public class AdminUserPolicyController {
@@ -76,23 +74,9 @@ public class AdminUserPolicyController {
     }
 
     private List<UserAccessUpdate> expandUsers(List<UserPolicyItemRequest> users) {
-        Set<String> userIds = new LinkedHashSet<>();
-        for (UserPolicyItemRequest user : users) {
-            if (user == null || user.userId() == null) {
-                throw new ApiException(ErrorCode.INVALID_REQUEST, "userId must not be blank");
-            }
-            List<String> parsedUserIds = Arrays.stream(user.userId().split("[,;，；\\r\\n]+"))
-                    .map(String::trim)
-                    .filter(value -> !value.isEmpty())
-                    .toList();
-            if (parsedUserIds.isEmpty()) {
-                throw new ApiException(
-                        ErrorCode.INVALID_REQUEST,
-                        "userId must contain at least one valid value");
-            }
-            userIds.addAll(parsedUserIds);
-        }
-        return userIds.stream()
+        return UserIdBatchParser.parse(users.stream()
+                        .map(user -> user == null ? null : user.userId())
+                        .toList()).stream()
                 .map(UserAccessUpdate::new)
                 .toList();
     }

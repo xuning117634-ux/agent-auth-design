@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.SkillUserPolicyMapper">
+    <resultMap id="SkillUserPolicyResultMap" type="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.SkillUserPolicyRecord">
+        <result column="agent_id" property="agentId"/>
+        <result column="skill_id" property="skillId"/>
+        <result column="access_scope" property="accessScope"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="SkillUserAccessPolicyResultMap" type="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.SkillUserAccessPolicyRecord">
+        <result column="agent_id" property="agentId"/>
+        <result column="skill_id" property="skillId"/>
+        <result column="user_id" property="userId"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectPolicies" resultMap="SkillUserPolicyResultMap">
+        SELECT agent_id, skill_id, access_scope, created_at, updated_at
+        FROM agent_skill_user_policy
+        WHERE agent_id = #{agentId}
+        ORDER BY skill_id
+    </select>
+
+    <select id="selectUserRules" resultMap="SkillUserAccessPolicyResultMap">
+        SELECT agent_id, skill_id, user_id, created_at, updated_at
+        FROM agent_skill_user_access_policy
+        WHERE agent_id = #{agentId}
+        ORDER BY skill_id, user_id
+    </select>
+
+    <delete id="deleteUserRules">
+        DELETE FROM agent_skill_user_access_policy
+        WHERE agent_id = #{agentId}
+    </delete>
+
+    <delete id="deletePolicies">
+        DELETE FROM agent_skill_user_policy
+        WHERE agent_id = #{agentId}
+    </delete>
+
+    <insert id="insertPolicy">
+        INSERT INTO agent_skill_user_policy (agent_id, skill_id, access_scope)
+        VALUES (#{agentId}, #{skillId}, #{accessScope})
+    </insert>
+
+    <insert id="insertUserRule">
+        INSERT INTO agent_skill_user_access_policy (agent_id, skill_id, user_id)
+        VALUES (#{agentId}, #{skillId}, #{userId})
+    </insert>
+</mapper>
