@@ -493,7 +493,9 @@ GET /internal/agents/{agentId}/users/{userId}/tools
   "userId": "user-42",
   "tools": [
     {
-      "toolId": "tool-a",
+      "serverName": "财经服务",
+      "toolName": "查询客户",
+      "toolId": "crm.customer.query",
       "authMode": "NO_AUTH_REQUIRED"
     }
   ]
@@ -502,7 +504,10 @@ GET /internal/agents/{agentId}/users/{userId}/tools
 
 规则：
 
-- 只返回当前 Agent 已绑定工具，不返回工具名称、描述或状态。
+- 只返回当前 Agent 已绑定且当前用户可访问的工具。
+- `serverName` 来自 `agent_policy_tool.service_name`，为空时回退为 `service_id`。
+- `toolName` 来自 `agent_policy_tool.tool_name`。
+- `serverName` 和 `toolName` 仅用于展示，不参与授权判断；目录记录缺失时返回 `null`。
 - 返回 PUBLIC Tool 和当前用户在白名单中的 RESTRICTED Tool。
 - 该接口不检查用户是否可访问 Agent，也不检查 Redis 当前对话授权。
 

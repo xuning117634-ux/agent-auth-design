@@ -5,12 +5,14 @@ import com.huawei.it.roma.liveeda.policycenter.api.ErrorCode;
 import com.huawei.it.roma.liveeda.policycenter.domain.AccessScope;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessDecision;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessReason;
+import com.huawei.it.roma.liveeda.policycenter.domain.AgentPolicyTool;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.AuthMode;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserAccessRule;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.UserAccessRule;
+import com.huawei.it.roma.liveeda.policycenter.repository.AgentPolicyToolCatalogRepository;
 import com.huawei.it.roma.liveeda.policycenter.repository.ToolPolicyRepository;
 import com.huawei.it.roma.liveeda.policycenter.repository.UserPolicyRepository;
 import org.junit.jupiter.api.Test;
@@ -154,6 +156,47 @@ class UserPolicyServiceTest {
                 .containsExactly("agent-public", "agent-restricted");
     }
 
+    @Test
+    void listAccessibleToolsEnrichesCatalogInformationAfterAccessFiltering() {
+        FakeUserPolicyRepository userPolicies = new FakeUserPolicyRepository();
+        userPolicies.toolPolicies.add(new ToolUserPolicy("agent-a", "tool-a", AccessScope.RESTRICTED));
+        userPolicies.toolPolicies.add(new ToolUserPolicy("agent-a", "tool-b", AccessScope.RESTRICTED));
+        userPolicies.toolRules.add(new ToolUserAccessRule("agent-a", "tool-a", "user-42"));
+        FakeToolPolicyRepository toolPolicies = FakeToolPolicyRepository.withPolicies(
+                new ToolPolicy("agent-a", "tool-a", AuthMode.NO_AUTH_REQUIRED),
+                new ToolPolicy("agent-a", "tool-b", AuthMode.NO_AUTH_REQUIRED),
+                new ToolPolicy("agent-a", "tool-c", AuthMode.USER_AUTH_REQUIRED));
+        FakeCatalogRepository catalog = new FakeCatalogRepository(List.of(
+                new AgentPolicyTool("agent-a", "crm-service", "CRM Service", "Customer Query", "tool-a")));
+        UserPolicyService service = new UserPolicyService(userPolicies, toolPolicies, catalog);
+
+        List<AccessibleToolView> tools = service.listAccessibleTools("agent-a", "user-42");
+
+        assertThat(tools)
+                .extracting(AccessibleToolView::toolId)
+                .containsExactly("tool-a", "tool-c");
+        assertThat(tools.get(0).serverName()).isEqualTo("CRM Service");
+        assertThat(tools.get(0).toolName()).isEqualTo("Customer Query");
+        assertThat(tools.get(1).serverName()).isNull();
+        assertThat(tools.get(1).toolName()).isNull();
+        assertThat(catalog.lastToolIds).containsExactly("tool-a", "tool-c");
+    }
+
+    @Test
+    void listAccessibleToolsFailsClosedWhenCatalogQueryFails() {
+        FakeToolPolicyRepository toolPolicies = FakeToolPolicyRepository.withPolicies(
+                new ToolPolicy("agent-a", "tool-a", AuthMode.NO_AUTH_REQUIRED));
+        UserPolicyService service = new UserPolicyService(
+                new FakeUserPolicyRepository(),
+                toolPolicies,
+                new FailingCatalogRepository());
+
+        assertThatThrownBy(() -> service.listAccessibleTools("agent-a", "user-42"))
+                .isInstanceOf(ApiException.class)
+                .satisfies(exception -> assertThat(((ApiException) exception).code())
+                        .isEqualTo(ErrorCode.POLICY_STORE_UNAVAILABLE));
+    }
+
     private static final class FakeUserPolicyRepository implements UserPolicyRepository {
         private Optional<AgentUserPolicy> agentPolicy = Optional.empty();
         private final List<ToolUserPolicy> toolPolicies = new ArrayList<>();
@@ -252,6 +295,41 @@ class UserPolicyServiceTest {
         @Override
         public void replaceAll(String agentId, List<ToolPolicy> policies) {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    private static final class FakeCatalogRepository implements AgentPolicyToolCatalogRepository {
+        private final List<AgentPolicyTool> tools;
+        private List<String> lastToolIds = List.of();
+
+        private FakeCatalogRepository(List<AgentPolicyTool> tools) {
+            this.tools = tools;
+        }
+
+        @Override
+        public Optional<AgentPolicyTool> findBoundTool(String agentId, String serverId, String toolName) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<AgentPolicyTool> findBoundTools(String agentId, List<String> toolIds) {
+            this.lastToolIds = List.copyOf(toolIds);
+            return tools.stream()
+                    .filter(tool -> tool.agentId().equals(agentId) && toolIds.contains(tool.toolId()))
+                    .toList();
+        }
+    }
+
+    private static final class FailingCatalogRepository implements AgentPolicyToolCatalogRepository {
+
+        @Override
+        public Optional<AgentPolicyTool> findBoundTool(String agentId, String serverId, String toolName) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<AgentPolicyTool> findBoundTools(String agentId, List<String> toolIds) {
+            throw new IllegalStateException("catalog down");
         }
     }
 }

@@ -9,7 +9,7 @@ import com.huawei.it.roma.liveeda.policycenter.api.dto.AccessibleToolListRespons
 import com.huawei.it.roma.liveeda.policycenter.api.dto.AgentAccessDecisionRequest;
 import com.huawei.it.roma.liveeda.policycenter.api.dto.AgentAccessDecisionResponse;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessDecision;
-import com.huawei.it.roma.liveeda.policycenter.domain.ToolPolicy;
+import com.huawei.it.roma.liveeda.policycenter.service.AccessibleToolView;
 import com.huawei.it.roma.liveeda.policycenter.service.UserPolicyService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -60,8 +60,8 @@ public class UserPolicyQueryController {
         return new AccessibleToolListResponse(agentId, userId, tools);
     }
 
-    private AccessibleToolItemResponse toToolResponse(ToolPolicy policy) {
-        return new AccessibleToolItemResponse(policy.toolId(), policy.effectiveAuthMode());
+    private AccessibleToolItemResponse toToolResponse(AccessibleToolView tool) {
+        return new AccessibleToolItemResponse(tool.serverName(), tool.toolName(), tool.toolId(), tool.authMode());
     }
 
     private void ensureNotBlank(String value, String message) {

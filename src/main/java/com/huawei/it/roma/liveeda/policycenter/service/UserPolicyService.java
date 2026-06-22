@@ -7,11 +7,13 @@ import com.huawei.it.roma.liveeda.policycenter.audit.NoopAuditLogger;
 import com.huawei.it.roma.liveeda.policycenter.domain.AccessScope;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessDecision;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessReason;
+import com.huawei.it.roma.liveeda.policycenter.domain.AgentPolicyTool;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserAccessRule;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.UserAccessRule;
+import com.huawei.it.roma.liveeda.policycenter.repository.AgentPolicyToolCatalogRepository;
 import com.huawei.it.roma.liveeda.policycenter.repository.ToolPolicyRepository;
 import com.huawei.it.roma.liveeda.policycenter.repository.UserPolicyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,28 +36,39 @@ public class UserPolicyService implements ToolUserPolicyEvaluator {
 
     private final UserPolicyRepository repository;
     private final ToolPolicyRepository toolPolicyRepository;
+    private final AgentPolicyToolCatalogRepository catalogRepository;
     private final Clock clock;
     private final AuditLogger auditLogger;
 
     public UserPolicyService(UserPolicyRepository repository, ToolPolicyRepository toolPolicyRepository) {
-        this(repository, toolPolicyRepository, Clock.systemUTC(), NoopAuditLogger.INSTANCE);
+        this(repository, toolPolicyRepository, AgentPolicyToolCatalogRepository.empty());
+    }
+
+    public UserPolicyService(
+            UserPolicyRepository repository,
+            ToolPolicyRepository toolPolicyRepository,
+            AgentPolicyToolCatalogRepository catalogRepository) {
+        this(repository, toolPolicyRepository, catalogRepository, Clock.systemUTC(), NoopAuditLogger.INSTANCE);
     }
 
     @Autowired
     public UserPolicyService(
             UserPolicyRepository repository,
             ToolPolicyRepository toolPolicyRepository,
+            AgentPolicyToolCatalogRepository catalogRepository,
             AuditLogger auditLogger) {
-        this(repository, toolPolicyRepository, Clock.systemUTC(), auditLogger);
+        this(repository, toolPolicyRepository, catalogRepository, Clock.systemUTC(), auditLogger);
     }
 
     UserPolicyService(
             UserPolicyRepository repository,
             ToolPolicyRepository toolPolicyRepository,
+            AgentPolicyToolCatalogRepository catalogRepository,
             Clock clock,
             AuditLogger auditLogger) {
         this.repository = repository;
         this.toolPolicyRepository = toolPolicyRepository;
+        this.catalogRepository = catalogRepository;
         this.clock = clock;
         this.auditLogger = auditLogger;
     }
@@ -188,17 +201,21 @@ public class UserPolicyService implements ToolUserPolicyEvaluator {
         }
     }
 
-    public List<ToolPolicy> listAccessibleTools(String agentId, String userId) {
+    public List<AccessibleToolView> listAccessibleTools(String agentId, String userId) {
         ensureNotBlank(agentId, "agentId must not be blank");
         ensureNotBlank(userId, "userId must not be blank");
         try {
-            return toolPolicyRepository.findByAgentId(agentId).stream()
+            List<ToolPolicy> accessiblePolicies = toolPolicyRepository.findByAgentId(agentId).stream()
                     .filter(policy -> canAccessTool(agentId, policy.toolId(), userId))
                     .map(policy -> new ToolPolicy(
                             policy.agentId(),
                             policy.toolId(),
                             policy.effectiveAuthMode(),
                             policy.updatedAt()))
+                    .toList();
+            Map<String, AgentPolicyTool> catalogByToolId = catalogByToolId(agentId, accessiblePolicies);
+            return accessiblePolicies.stream()
+                    .map(policy -> toAccessibleToolView(policy, catalogByToolId.get(policy.toolId())))
                     .toList();
         } catch (RuntimeException exception) {
             throw policyStoreUnavailable(exception);
@@ -305,7 +322,26 @@ public class UserPolicyService implements ToolUserPolicyEvaluator {
         if (exception instanceof ApiException apiException) {
             return apiException;
         }
-        return new ApiException(ErrorCode.POLICY_STORE_UNAVAILABLE, "policy store is unavailable");
+        return new ApiException(ErrorCode.POLICY_STORE_UNAVAILABLE, "policy store is unavailable", exception);
+    }
+
+    private Map<String, AgentPolicyTool> catalogByToolId(String agentId, List<ToolPolicy> policies) {
+        List<String> toolIds = policies.stream()
+                .map(ToolPolicy::toolId)
+                .toList();
+        return catalogRepository.findBoundTools(agentId, toolIds).stream()
+                .collect(Collectors.toMap(
+                        AgentPolicyTool::toolId,
+                        Function.identity(),
+                        (left, right) -> left));
+    }
+
+    private AccessibleToolView toAccessibleToolView(ToolPolicy policy, AgentPolicyTool catalog) {
+        return new AccessibleToolView(
+                catalog == null ? null : catalog.effectiveServerName(),
+                catalog == null ? null : catalog.toolName(),
+                policy.toolId(),
+                policy.effectiveAuthMode());
     }
 
     private void auditReplacement(
