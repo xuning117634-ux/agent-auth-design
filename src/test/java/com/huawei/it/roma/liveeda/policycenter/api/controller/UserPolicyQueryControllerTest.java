@@ -4,12 +4,14 @@ import com.huawei.it.roma.liveeda.policycenter.api.GlobalExceptionHandler;
 import com.huawei.it.roma.liveeda.policycenter.domain.AccessScope;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessDecision;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessReason;
+import com.huawei.it.roma.liveeda.policycenter.domain.AgentPolicyTool;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.AuthMode;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserAccessRule;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.UserAccessRule;
+import com.huawei.it.roma.liveeda.policycenter.repository.AgentPolicyToolCatalogRepository;
 import com.huawei.it.roma.liveeda.policycenter.repository.ToolPolicyRepository;
 import com.huawei.it.roma.liveeda.policycenter.repository.UserPolicyRepository;
 import com.huawei.it.roma.liveeda.policycenter.service.UserPolicyService;
@@ -30,7 +32,8 @@ class UserPolicyQueryControllerTest {
 
     private final UserPolicyService service = new UserPolicyService(
             new FixedUserPolicyRepository(),
-            new FixedToolPolicyRepository());
+            new FixedToolPolicyRepository(),
+            new FixedCatalogRepository());
     private final MockMvc mockMvc = standaloneSetup(new UserPolicyQueryController(service))
             .setControllerAdvice(new GlobalExceptionHandler())
             .setMessageConverters(MockMvcSupport.jsonConverter())
@@ -72,6 +75,8 @@ class UserPolicyQueryControllerTest {
                 .andExpect(jsonPath("$.agentId").value("agent-a"))
                 .andExpect(jsonPath("$.userId").value("user-42"))
                 .andExpect(jsonPath("$.tools.length()").value(2))
+                .andExpect(jsonPath("$.tools[0].serverName").value("CRM Service"))
+                .andExpect(jsonPath("$.tools[0].toolName").value("Customer Query"))
                 .andExpect(jsonPath("$.tools[0].toolId").value("tool-a"))
                 .andExpect(jsonPath("$.tools[0].authMode").value("NO_AUTH_REQUIRED"))
                 .andExpect(jsonPath("$.tools[1].toolId").value("tool-c"))
@@ -174,6 +179,27 @@ class UserPolicyQueryControllerTest {
         @Override
         public void replaceAll(String agentId, List<ToolPolicy> policies) {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    private static final class FixedCatalogRepository implements AgentPolicyToolCatalogRepository {
+
+        @Override
+        public Optional<AgentPolicyTool> findBoundTool(String agentId, String serverId, String toolName) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<AgentPolicyTool> findBoundTools(String agentId, List<String> toolIds) {
+            return toolIds.stream()
+                    .filter("tool-a"::equals)
+                    .map(toolId -> new AgentPolicyTool(
+                            agentId,
+                            "crm-service",
+                            "CRM Service",
+                            "Customer Query",
+                            toolId))
+                    .toList();
         }
     }
 }

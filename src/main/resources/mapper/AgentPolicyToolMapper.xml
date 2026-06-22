@@ -21,4 +21,21 @@
         ORDER BY id DESC
         LIMIT 1
     </select>
+
+    <select id="selectBoundTools" resultMap="AgentPolicyToolResultMap">
+        SELECT tool.agent_id, tool.service_id, tool.service_name, tool.tool_name, tool.tool_id
+        FROM agent_policy_tool tool
+        JOIN (
+            SELECT tool_id, MAX(id) AS id
+            FROM agent_policy_tool
+            WHERE agent_id = #{agentId}
+              AND status = 1
+              AND tool_id IN
+              <foreach collection="toolIds" item="toolId" open="(" separator="," close=")">
+                  #{toolId}
+              </foreach>
+            GROUP BY tool_id
+        ) latest ON tool.id = latest.id
+        ORDER BY tool.tool_id
+    </select>
 </mapper>
