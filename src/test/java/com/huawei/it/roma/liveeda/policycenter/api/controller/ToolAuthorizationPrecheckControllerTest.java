@@ -200,6 +200,10 @@ class ToolAuthorizationPrecheckControllerTest {
                     toolName,
                     "finance.quote.query"));
         }
+        @Override
+        public List<AgentPolicyTool> findBoundTools(String agentId, List<String> toolIds) {
+            return List.of();
+        }
     }
 
     private static final class FixedPolicyRepository implements ToolPolicyRepository {
