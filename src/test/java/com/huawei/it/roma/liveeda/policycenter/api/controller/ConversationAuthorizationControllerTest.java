@@ -48,6 +48,44 @@ class ConversationAuthorizationControllerTest {
     }
 
     @Test
+    void confirmsBatchConversationAuthorizationFromTokenIdHeader() throws Exception {
+        mockMvc.perform(post("/internal/conversation-authorizations/batch")
+                        .header("tokenid", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "toolIds": [
+                                    "tool-x",
+                                    "tool-y"
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("AUTHORIZED"))
+                .andExpect(jsonPath("$.tokenId").value("agent-a:user-42:conversation-99"))
+                .andExpect(jsonPath("$.toolCount").value(2))
+                .andExpect(jsonPath("$.toolIds[0]").value("tool-x"))
+                .andExpect(jsonPath("$.toolIds[1]").value("tool-y"));
+    }
+
+    @Test
+    void rejectsBatchConversationAuthorizationWithDuplicateToolIds() throws Exception {
+        mockMvc.perform(post("/internal/conversation-authorizations/batch")
+                        .header("tokenid", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "toolIds": [
+                                    "tool-x",
+                                    "tool-x"
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
     void returnsCleanupResult() throws Exception {
         mockMvc.perform(post("/internal/conversation-authorizations/cleanup")
                         .contentType(MediaType.APPLICATION_JSON)

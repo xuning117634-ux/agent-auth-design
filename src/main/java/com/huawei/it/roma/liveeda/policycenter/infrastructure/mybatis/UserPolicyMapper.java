@@ -27,7 +27,7 @@ public interface UserPolicyMapper {
             @Param("toolId") String toolId,
             @Param("userId") String userId);
 
-    List<String> selectKnownAgentIds();
+    List<AccessibleAgentRecord> selectAccessibleAgents(@Param("userId") String userId);
 
     void upsertAgentPolicy(AgentUserPolicyRecord record);
 

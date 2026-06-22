@@ -33,6 +33,12 @@
         <result column="updated_at" property="updatedAt"/>
     </resultMap>
 
+    <resultMap id="AccessibleAgentResultMap" type="com.huawei.it.roma.liveeda.policycenter.infrastructure.mybatis.AccessibleAgentRecord">
+        <result column="agent_id" property="agentId"/>
+        <result column="access_scope" property="accessScope"/>
+        <result column="whitelisted" property="whitelisted"/>
+    </resultMap>
+
     <select id="selectAgentPolicy" resultMap="AgentUserPolicyResultMap">
         SELECT agent_id, access_scope, created_at, updated_at
         FROM agent_user_policy
@@ -82,17 +88,23 @@
           AND user_id = #{userId}
     </select>
 
-    <select id="selectKnownAgentIds" resultType="string">
-        SELECT agent_id FROM agent_tool_policy
-        UNION
-        SELECT agent_id FROM agent_user_policy
-        UNION
-        SELECT agent_id FROM agent_tool_user_policy
-        UNION
-        SELECT agent_id FROM agent_user_access_policy
-        UNION
-        SELECT agent_id FROM agent_tool_user_access_policy
-        ORDER BY agent_id
+    <select id="selectAccessibleAgents" resultMap="AccessibleAgentResultMap">
+        SELECT base.agent_id,
+               COALESCE(policy.access_scope, 'PUBLIC') AS access_scope,
+               CASE WHEN rule.user_id IS NULL THEN 0 ELSE 1 END AS whitelisted
+        FROM (
+            SELECT agent_id
+            FROM agent_tool_policy
+            GROUP BY agent_id
+        ) base
+        LEFT JOIN agent_user_policy policy
+               ON policy.agent_id = base.agent_id
+        LEFT JOIN agent_user_access_policy rule
+               ON rule.agent_id = base.agent_id
+              AND rule.user_id = #{userId}
+        WHERE COALESCE(policy.access_scope, 'PUBLIC') = 'PUBLIC'
+           OR rule.user_id IS NOT NULL
+        ORDER BY base.agent_id
     </select>
 
     <insert id="upsertAgentPolicy">

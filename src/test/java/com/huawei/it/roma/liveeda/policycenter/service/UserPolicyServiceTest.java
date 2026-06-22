@@ -3,6 +3,7 @@ package com.huawei.it.roma.liveeda.policycenter.service;
 import com.huawei.it.roma.liveeda.policycenter.api.ApiException;
 import com.huawei.it.roma.liveeda.policycenter.api.ErrorCode;
 import com.huawei.it.roma.liveeda.policycenter.domain.AccessScope;
+import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessDecision;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessReason;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.AuthMode;
@@ -135,11 +136,30 @@ class UserPolicyServiceTest {
         assertThat(service.canAccessTool("agent-a", "tool-a", "user-99")).isTrue();
     }
 
+    @Test
+    void listAccessibleAgentsUsesRepositoryQueryWithoutEnumeratingKnownAgents() {
+        FakeUserPolicyRepository repository = new FakeUserPolicyRepository();
+        repository.accessibleAgents.add(AgentAccessDecision.allow(
+                "agent-public",
+                "user-42",
+                AgentAccessReason.AGENT_PUBLIC_ACCESS));
+        repository.accessibleAgents.add(AgentAccessDecision.allow(
+                "agent-restricted",
+                "user-42",
+                AgentAccessReason.AGENT_USER_WHITELISTED));
+        UserPolicyService service = new UserPolicyService(repository, FakeToolPolicyRepository.withPolicies());
+
+        assertThat(service.listAccessibleAgents("user-42"))
+                .extracting(AgentAccessDecision::agentId)
+                .containsExactly("agent-public", "agent-restricted");
+    }
+
     private static final class FakeUserPolicyRepository implements UserPolicyRepository {
         private Optional<AgentUserPolicy> agentPolicy = Optional.empty();
         private final List<ToolUserPolicy> toolPolicies = new ArrayList<>();
         private final List<UserAccessRule> agentRules = new ArrayList<>();
         private final List<ToolUserAccessRule> toolRules = new ArrayList<>();
+        private final List<AgentAccessDecision> accessibleAgents = new ArrayList<>();
 
         @Override
         public Optional<AgentUserPolicy> findAgentPolicy(String agentId) {
@@ -183,8 +203,8 @@ class UserPolicyServiceTest {
         }
 
         @Override
-        public List<String> findKnownAgentIds() {
-            return List.of("agent-a");
+        public List<AgentAccessDecision> findAccessibleAgents(String userId) {
+            return accessibleAgents;
         }
 
         @Override

@@ -2,6 +2,8 @@ package com.huawei.it.roma.liveeda.policycenter.api.controller;
 
 import com.huawei.it.roma.liveeda.policycenter.api.GlobalExceptionHandler;
 import com.huawei.it.roma.liveeda.policycenter.domain.AccessScope;
+import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessDecision;
+import com.huawei.it.roma.liveeda.policycenter.domain.AgentAccessReason;
 import com.huawei.it.roma.liveeda.policycenter.domain.AgentUserPolicy;
 import com.huawei.it.roma.liveeda.policycenter.domain.AuthMode;
 import com.huawei.it.roma.liveeda.policycenter.domain.ToolPolicy;
@@ -214,8 +216,11 @@ class AdminUserPolicyControllerTest {
         }
 
         @Override
-        public List<String> findKnownAgentIds() {
-            return List.of("agent-a");
+        public List<AgentAccessDecision> findAccessibleAgents(String userId) {
+            return List.of(AgentAccessDecision.allow(
+                    "agent-a",
+                    userId,
+                    AgentAccessReason.AGENT_PUBLIC_ACCESS));
         }
 
         @Override

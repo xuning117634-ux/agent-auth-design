@@ -16,7 +16,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -67,6 +70,40 @@ public class ConversationAuthorizationService {
         }
         audit("CONVERSATION_AUTHORIZED", tokenId, toolId, Map.of("status", AuthorizationStatus.AUTHORIZED.name()));
         return new ConversationAuthorizationResult(AuthorizationStatus.AUTHORIZED, tokenId.raw(), toolId);
+    }
+
+    public BatchConversationAuthorizationResult authorizeBatch(String tokenIdRaw, List<String> toolIds) {
+        TokenId tokenId = parseForRequest(tokenIdRaw);
+        List<String> distinctToolIds = validateAndNormalizeToolIds(toolIds);
+
+        for (String toolId : distinctToolIds) {
+            ToolPolicy policy = findPolicy(tokenId, toolId)
+                    .orElseThrow(() -> new ApiException(ErrorCode.TOOL_NOT_BOUND, "tool is not bound"));
+            if (policy.effectiveAuthMode() == AuthMode.NO_AUTH_REQUIRED) {
+                throw new ApiException(ErrorCode.AUTHORIZATION_NOT_REQUIRED, "authorization is not required");
+            }
+        }
+
+        try {
+            for (String toolId : distinctToolIds) {
+                authorizationStore.authorize(tokenId.raw(), toolId, authorizationTtl);
+            }
+        } catch (RuntimeException exception) {
+            throw authorizationStoreUnavailable(
+                    exception,
+                    "AUTHORIZE_CONVERSATION_TOOLS",
+                    tokenId,
+                    null);
+        }
+
+        audit("CONVERSATION_AUTHORIZED_BATCH", tokenId, null, Map.of(
+                "status", AuthorizationStatus.AUTHORIZED.name(),
+                "toolCount", Integer.toString(distinctToolIds.size())));
+        return new BatchConversationAuthorizationResult(
+                AuthorizationStatus.AUTHORIZED,
+                tokenId.raw(),
+                distinctToolIds.size(),
+                distinctToolIds);
     }
 
     public AuthorizationStatus status(String tokenIdRaw, String toolId) {
@@ -132,6 +169,23 @@ public class ConversationAuthorizationService {
                 "authorization store is unavailable",
                 exception,
                 context(operation, tokenId, toolId));
+    }
+
+    private List<String> validateAndNormalizeToolIds(List<String> toolIds) {
+        if (toolIds == null || toolIds.isEmpty()) {
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "toolIds must not be empty");
+        }
+
+        LinkedHashSet<String> distinctToolIds = new LinkedHashSet<>();
+        for (String toolId : toolIds) {
+            if (toolId == null || toolId.isBlank()) {
+                throw new ApiException(ErrorCode.INVALID_REQUEST, "toolId must not be blank");
+            }
+            if (!distinctToolIds.add(toolId)) {
+                throw new ApiException(ErrorCode.INVALID_REQUEST, "toolId must not be duplicated");
+            }
+        }
+        return new ArrayList<>(distinctToolIds);
     }
 
     private Map<String, String> context(String operation, TokenId tokenId, String toolId) {
