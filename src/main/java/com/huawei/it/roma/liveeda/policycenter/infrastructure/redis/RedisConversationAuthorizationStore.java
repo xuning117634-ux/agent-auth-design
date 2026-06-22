@@ -34,6 +34,11 @@ public class RedisConversationAuthorizationStore implements ConversationAuthoriz
     }
 
     @Override
+    public boolean consume(String tokenId, String toolId) {
+        return Boolean.TRUE.equals(redisTemplate.delete(key(tokenId, toolId)));
+    }
+
+    @Override
     public void authorize(String tokenId, String toolId, Duration ttl) {
         redisTemplate.opsForValue().set(key(tokenId, toolId), "1", ttl);
     }

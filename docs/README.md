@@ -123,7 +123,7 @@ docs/
 
 V1 包含：
 
-- Agent-工具绑定及 `NO_AUTH_REQUIRED`、`USER_AUTH_REQUIRED` 标签。
+- Agent-工具绑定及 `NO_AUTH_REQUIRED`、`USER_AUTH_REQUIRED`、`PER_CALL_AUTH_REQUIRED` 标签。
 - 基于 `tokenId + toolId` 的三态授权决策。
 - 当前对话用户授权、轮询查询和对话结束清理。
 - 数据库和 Redis 异常时默认拒绝。

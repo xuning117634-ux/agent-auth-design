@@ -46,7 +46,8 @@ tokenId = agentId:userId:conversationId
 | authMode | 含义 |
 | --- | --- |
 | `NO_AUTH_REQUIRED` | 工具已绑定，可直接调用，不需要用户确认 |
-| `USER_AUTH_REQUIRED` | 工具已绑定，必须存在当前对话授权 |
+| `USER_AUTH_REQUIRED` | 工具已绑定，必须存在当前对话授权；授权确认可指定有效期 |
+| `PER_CALL_AUTH_REQUIRED` | 工具已绑定，每次调用都必须人在回路确认；确认后只允许下一次重试放行 |
 
 策略中心只保存管理员选择绑定到 Agent 的工具。每条记录表示一个 `agentId + toolId + authMode` 绑定关系。
 
@@ -61,6 +62,9 @@ agentId + userId + conversationId + toolId
 ```
 
 授权记录使用 `authz:{tokenId}:{toolId}` 表示，只在当前对话中生效。
+
+- `USER_AUTH_REQUIRED`：Key 存在期间，同一 `tokenId + toolId` 可持续放行，直到 TTL 到期或对话清理。
+- `PER_CALL_AUTH_REQUIRED`：Key 只作为一次性授权凭证。MCP 网关下一次鉴权命中后，策略中心会消费并删除该 Key，之后再次调用仍需重新授权。
 
 ### 人员策略
 
@@ -86,7 +90,9 @@ decision: ALLOW | AUTHORIZATION_REQUIRED | DENY
 reason:
 - NO_AUTH_REQUIRED
 - CONVERSATION_AUTHORIZED
+- PER_CALL_AUTHORIZED
 - USER_AUTHORIZATION_REQUIRED
+- PER_CALL_AUTHORIZATION_REQUIRED
 - TOOL_NOT_BOUND
 - INVALID_TOKEN_ID
 - POLICY_STORE_UNAVAILABLE
@@ -109,10 +115,14 @@ flowchart TD
     userPolicy -->|"是"| mode{"authMode"}
     mode -->|"NO_AUTH_REQUIRED"| noAuth["ALLOW<br/>NO_AUTH_REQUIRED"]
     mode -->|"USER_AUTH_REQUIRED 或空值"| grant["查询 authz:{tokenId}:{toolId}"]
+    mode -->|"PER_CALL_AUTH_REQUIRED"| perCallGrant["消费 authz:{tokenId}:{toolId}"]
 
     grant --> hit{"当前对话授权是否存在？"}
     hit -->|"是"| authorized["ALLOW<br/>CONVERSATION_AUTHORIZED"]
     hit -->|"否"| required["AUTHORIZATION_REQUIRED<br/>USER_AUTHORIZATION_REQUIRED"]
+    perCallGrant --> perCallHit{"一次性授权是否存在？"}
+    perCallHit -->|"是"| perCallAuthorized["ALLOW<br/>PER_CALL_AUTHORIZED<br/>并删除授权记录"]
+    perCallHit -->|"否"| perCallRequired["AUTHORIZATION_REQUIRED<br/>PER_CALL_AUTHORIZATION_REQUIRED"]
 ```
 
 强制规则：
@@ -121,10 +131,11 @@ flowchart TD
 2. 策略配置数据库不可用时返回 `DENY + POLICY_STORE_UNAVAILABLE`。
 3. 未绑定工具直接拒绝，不得进入用户授权流程。
 4. `NO_AUTH_REQUIRED` 直接允许，不查询当前对话授权缓存。
-5. `USER_AUTH_REQUIRED` 或空标签才查询当前对话授权。
-6. Redis 查询异常时返回 `DENY + AUTHORIZATION_STORE_UNAVAILABLE`，不得视为缓存未命中。
-7. 只有 `AUTHORIZATION_REQUIRED` 可以触发用户授权页面；其他拒绝原因均不得触发。
-8. 只有明确的 `ALLOW` 可以驱动 MCP 网关获取 Cookie 和调用工具。
+5. `USER_AUTH_REQUIRED` 或空标签查询当前对话授权，命中后在 TTL 内持续允许。
+6. `PER_CALL_AUTH_REQUIRED` 查询并消费一次性授权，命中后只允许本次重试。
+7. Redis 查询或消费异常时返回 `DENY + AUTHORIZATION_STORE_UNAVAILABLE`，不得视为缓存未命中。
+8. 只有 `AUTHORIZATION_REQUIRED` 可以触发用户授权页面；其他拒绝原因均不得触发。
+9. 只有明确的 `ALLOW` 可以驱动 MCP 网关获取 Cookie 和调用工具。
 
 ## 管理员配置
 
@@ -133,7 +144,7 @@ flowchart TD
 1. 管理员从 Agent 网关提供的能力中选择其有权限管理的 Agent。
 2. 管理员查看 MCP 网关提供的当前全量工具列表。
 3. 管理员从当前全量工具列表中选择部分工具绑定到目标 Agent。
-4. 管理员在矩阵中为已选择工具配置 `NO_AUTH_REQUIRED` 或 `USER_AUTH_REQUIRED`。
+4. 管理员在矩阵中为已选择工具配置 `NO_AUTH_REQUIRED`、`USER_AUTH_REQUIRED` 或 `PER_CALL_AUTH_REQUIRED`。
 5. 新绑定但未选择标签的工具按 `USER_AUTH_REQUIRED` 保存。
 6. 保存时提交目标 Agent 的完整已绑定工具策略列表。
 7. 策略中心在单个事务中新增或更新请求内记录，并删除请求中未包含的旧绑定。
@@ -147,7 +158,7 @@ V1 暂不在策略中心实现接口认证、管理员身份校验或 Agent 管�
 
 ```text
 decision = AUTHORIZATION_REQUIRED
-reason = USER_AUTHORIZATION_REQUIRED
+reason = USER_AUTHORIZATION_REQUIRED 或 PER_CALL_AUTHORIZATION_REQUIRED
 ```
 
 流程：
@@ -155,10 +166,10 @@ reason = USER_AUTHORIZATION_REQUIRED
 1. MCP 网关向 Agent 返回未授权状态和 `toolId`。
 2. Agent 保存执行检查点并挂起当前工具调用。
 3. Agent 经 Agent 网关把 `tokenId + toolId` 授权请求传给业务后端。
-4. 业务后端展示“允许本次对话调用该工具”的授权页面。
+4. 业务后端展示授权页面。`USER_AUTH_REQUIRED` 表示允许在有效期内重复调用；`PER_CALL_AUTH_REQUIRED` 表示只允许下一次重试调用。
 5. 授权页面及业务后端维护的服务端授权会话有效期均为 1 分钟。
-6. 用户同意后，业务后端调用策略中心确认接口，提交 `tokenId + toolId`。
-7. 策略中心再次确认工具仍绑定且仍需要用户授权，然后幂等写入当前对话授权。
+6. 用户同意后，业务后端调用策略中心确认接口，提交 `tokenId + toolId`，可选提交 `expiresInSeconds`。
+7. 策略中心再次确认工具仍绑定且仍需要用户授权，然后写入当前对话授权。`USER_AUTH_REQUIRED` 写入可持续到 TTL 的授权记录；`PER_CALL_AUTH_REQUIRED` 写入一次性授权记录。
 8. Agent 每 2 秒查询一次授权状态，最长等待 1 分钟。
 9. 查询成功后，Agent 恢复检查点并重新调用 MCP 网关。
 10. MCP 网关必须重新执行完整授权决策，不得沿用首次结果。
@@ -182,6 +193,8 @@ V1 信任业务后端已经完成用户确认和 1 分钟服务端授权会话�
 | 工具未绑定 | `DENY + TOOL_NOT_BOUND` |
 | 策略数据库不可用 | `DENY + POLICY_STORE_UNAVAILABLE` |
 | 当前对话授权不存在 | `AUTHORIZATION_REQUIRED + USER_AUTHORIZATION_REQUIRED` |
+| 每次授权工具的一次性授权不存在 | `AUTHORIZATION_REQUIRED + PER_CALL_AUTHORIZATION_REQUIRED` |
+| 每次授权工具的一次性授权命中 | `ALLOW + PER_CALL_AUTHORIZED`，并消费删除授权记录 |
 | Redis 不可用或超时 | `DENY + AUTHORIZATION_STORE_UNAVAILABLE` |
 | 授权页面超时 | 不写入授权，Agent 最终结束挂起 |
 | MCP 网关收到 `DENY` | 终止工具调用，不获取 Cookie |
@@ -221,4 +234,4 @@ traceId
 2. 数据库为 MySQL，数据库和表由人工执行 `sql/policy-center-schema.sql` 创建，数据访问使用 MyBatis + XML Mapper。
 3. Redis 客户端为 Spring Data Redis + Lettuce；本地开发使用单机 Redis，生产保留 Redis Cluster 配置能力。
 4. V1 暂不实现接口认证，调用方身份通过日志字段保留扩展空间。
-5. 当前对话授权记录物理安全 TTL 为 7 天。
+5. 当前对话授权记录默认物理安全 TTL 为 7 天，可通过授权确认请求的 `expiresInSeconds` 指定更短或更长的相对有效期，但不得超过 `policy-center.authorization.max-ttl`。

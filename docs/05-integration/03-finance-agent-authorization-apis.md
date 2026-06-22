@@ -147,7 +147,8 @@ Content-Type: application/json
   "toolIds": [
     "finance.quote.query",
     "finance.report.search"
-  ]
+  ],
+  "expiresInSeconds": 3600
 }
 ```
 
@@ -172,7 +173,9 @@ Content-Type: application/json
 - 同一请求内 `toolId` 不得重复。
 - 策略中心先完成整批校验，再写入 Redis。
 - 任一工具未绑定当前 Agent、无需授权、`tokenid` 非法或策略库异常时，整批失败，不写入授权记录。
-- 校验通过后写入 `authz:{tokenId}:{toolId}`，TTL 复用当前对话授权配置。
+- `expiresInSeconds` 可选，表示授权记录相对有效期，单位秒；缺失时使用当前对话授权默认配置。
+- 校验通过后写入 `authz:{tokenId}:{toolId}`。
+- `USER_AUTH_REQUIRED` 工具在 TTL 内持续允许；`PER_CALL_AUTH_REQUIRED` 工具只允许下一次重试，命中后会被策略中心消费删除。
 - 重复授权保持幂等。
 - Redis 写入失败返回 `503 AUTHORIZATION_STORE_UNAVAILABLE`。
 
@@ -198,10 +201,10 @@ Content-Type: application/json
 业务后端：
 
 - 用户确认授权后，调用批量授权确认接口。
-- 授权页面仍只表达“本次对话有效”。
+- 授权页面应按工具标签表达授权含义：`USER_AUTH_REQUIRED` 可表达有效期内允许，`PER_CALL_AUTH_REQUIRED` 表达仅本次重试允许。
 - 写入成功后通知 Agent 恢复检查点；Agent 必须重新经过 MCP 网关调用工具。
 
 策略中心：
 
 - 预检接口只改善授权体验，不替代 MCP 网关的最终运行时授权。
-- 批量授权接口只写入当前对话授权，不提供跨对话、7 天或 30 天授权；相关能力暂不进入 V1 验收，未来演进中开发。
+- 批量授权接口只写入当前对话授权，不提供跨对话或 Agent 级长期授权；相关能力暂不进入 V1 验收，未来演进中开发。

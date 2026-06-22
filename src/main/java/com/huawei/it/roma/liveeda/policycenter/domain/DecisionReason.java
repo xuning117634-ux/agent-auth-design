@@ -3,7 +3,9 @@ package com.huawei.it.roma.liveeda.policycenter.domain;
 public enum DecisionReason {
     NO_AUTH_REQUIRED,
     CONVERSATION_AUTHORIZED,
+    PER_CALL_AUTHORIZED,
     USER_AUTHORIZATION_REQUIRED,
+    PER_CALL_AUTHORIZATION_REQUIRED,
     TOOL_NOT_BOUND,
     USER_TOOL_ACCESS_DENIED,
     INVALID_TOKEN_ID,

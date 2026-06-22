@@ -19,7 +19,7 @@
 agent_tool_policy
 - agent_id
 - tool_id
-- auth_mode: NO_AUTH_REQUIRED | USER_AUTH_REQUIRED
+- auth_mode: NO_AUTH_REQUIRED | USER_AUTH_REQUIRED | PER_CALL_AUTH_REQUIRED
 - created_at
 - updated_at
 - UNIQUE(agent_id, tool_id)
@@ -28,7 +28,7 @@ agent_tool_policy
 逻辑约束：
 
 - `agent_id`、`tool_id`、`auth_mode`、`created_at`、`updated_at` 均应为非空。
-- `auth_mode` 新写入时只允许两个枚举值。
+- `auth_mode` 新写入时只允许 `NO_AUTH_REQUIRED`、`USER_AUTH_REQUIRED`、`PER_CALL_AUTH_REQUIRED` 三个枚举值。
 - 为兼容历史数据，运行时读取到空 `auth_mode` 时按 `USER_AUTH_REQUIRED` 处理。
 - `(agent_id, tool_id)` 唯一约束保证不同 Agent 和工具配置相互隔离。
 - 建议以 `agent_id` 建立查询索引，支持整份读取和整份覆盖。
@@ -152,6 +152,8 @@ Value: 1
 
 - Key 存在表示该 tokenId 对应的当前对话已授权调用该工具。
 - Key 不存在表示尚未授权。
+- 对 `USER_AUTH_REQUIRED` 工具，Key 存在表示 TTL 内持续允许。
+- 对 `PER_CALL_AUTH_REQUIRED` 工具，Key 存在表示下一次重试可放行；运行时决策命中后必须删除该 Key，确保下一次调用重新授权。
 - `{tokenId}` 同时作为 Redis Cluster hash tag，使同一对话的授权记录尽量落入同一 slot，便于未来演进为批量或脚本操作。
 - Value 不承载用户、Agent、过期时间或授权范围信息。
 
@@ -172,14 +174,18 @@ MATCH authz:{tokenId}:*
 
 ### 生命周期与 TTL
 
-- 业务生命周期：从用户确认授权开始，到业务后端通知对话结束或删除。
-- V1 暂不开放用户为当前授权选择 7 天、30 天或其他期限；相关能力开发中。
+- 业务生命周期：从用户确认授权开始，到 TTL 到期、运行时消费一次性授权，或业务后端通知对话结束、删除。
+- 授权确认请求可选传入 `expiresInSeconds`，表示本次授权记录的相对有效期，单位秒。
+- `expiresInSeconds` 缺失时使用 `policy-center.authorization.ttl`，当前默认 7 天。
+- `expiresInSeconds` 必须大于 `0` 且不超过 `policy-center.authorization.max-ttl`，当前默认 30 天。
 - 对话清理是主删除机制。
-- 为防止业务后端漏发清理造成孤儿数据，授权 Key 物理安全 TTL 固定为 7 天。该 TTL 只是兜底回收，不改变“本次对话有效”的业务语义。
+- 对 `PER_CALL_AUTH_REQUIRED`，TTL 只表示“用户确认后等待 Agent 重试”的最长时间，不表示持续放行窗口。
+- 为防止业务后端漏发清理造成孤儿数据，授权 Key 必须始终设置 TTL。该 TTL 是兜底回收，不改变“当前对话有效”的业务语义。
 
 ## 并发与幂等
 
 - 重复授权确认：`SET` 和 `SADD` 后的最终状态不变，接口幂等。
+- 每次授权消费：`PER_CALL_AUTH_REQUIRED` 决策使用删除成功作为放行依据；删除失败或 Key 不存在都不能放行。
 - 重复对话清理：不存在 Key 时视为成功，接口幂等。
 - 授权查询与清理并发：清理完成后的查询必须返回未授权。
 - 清理与迟到授权确认并发：V1 信任业务后端不会在对话结束清理后提交迟到授权确认，策略中心不维护“对话已关闭”状态。

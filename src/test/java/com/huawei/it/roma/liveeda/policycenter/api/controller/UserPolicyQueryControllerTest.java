@@ -80,7 +80,7 @@ class UserPolicyQueryControllerTest {
                 .andExpect(jsonPath("$.tools[0].toolId").value("tool-a"))
                 .andExpect(jsonPath("$.tools[0].authMode").value("NO_AUTH_REQUIRED"))
                 .andExpect(jsonPath("$.tools[1].toolId").value("tool-c"))
-                .andExpect(jsonPath("$.tools[1].authMode").value("USER_AUTH_REQUIRED"));
+                .andExpect(jsonPath("$.tools[1].authMode").value("PER_CALL_AUTH_REQUIRED"));
     }
 
     private static final class FixedUserPolicyRepository implements UserPolicyRepository {
@@ -171,7 +171,7 @@ class UserPolicyQueryControllerTest {
                 return List.of(
                         new ToolPolicy(agentId, "tool-a", AuthMode.NO_AUTH_REQUIRED),
                         new ToolPolicy(agentId, "tool-b", AuthMode.NO_AUTH_REQUIRED),
-                        new ToolPolicy(agentId, "tool-c", AuthMode.USER_AUTH_REQUIRED));
+                        new ToolPolicy(agentId, "tool-c", AuthMode.PER_CALL_AUTH_REQUIRED));
             }
             return List.of();
         }

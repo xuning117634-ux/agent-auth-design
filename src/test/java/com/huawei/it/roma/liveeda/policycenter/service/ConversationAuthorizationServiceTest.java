@@ -36,6 +36,56 @@ class ConversationAuthorizationServiceTest {
     }
 
     @Test
+    void authorizesUserAuthRequiredToolWithRequestedTtl() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.USER_AUTH_REQUIRED);
+        FakeAuthorizationStore store = new FakeAuthorizationStore(false);
+        ConversationAuthorizationService service = new ConversationAuthorizationService(
+                policies,
+                store,
+                Duration.ofDays(7),
+                Duration.ofDays(30));
+
+        service.authorize("agent-a:user-42:conversation-99", "tool-x", 3600L);
+
+        assertThat(store.authorizedTtl).isEqualTo(Duration.ofHours(1));
+    }
+
+    @Test
+    void rejectsRequestedTtlOutsideAllowedRange() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.USER_AUTH_REQUIRED);
+        FakeAuthorizationStore store = new FakeAuthorizationStore(false);
+        ConversationAuthorizationService service = new ConversationAuthorizationService(
+                policies,
+                store,
+                Duration.ofDays(7),
+                Duration.ofDays(30));
+
+        assertThatThrownBy(() -> service.authorize("agent-a:user-42:conversation-99", "tool-x", 0L))
+                .isInstanceOf(ApiException.class)
+                .satisfies(exception -> assertThat(((ApiException) exception).code()).isEqualTo(ErrorCode.INVALID_REQUEST));
+        assertThatThrownBy(() -> service.authorize("agent-a:user-42:conversation-99", "tool-x", Duration.ofDays(31).toSeconds()))
+                .isInstanceOf(ApiException.class)
+                .satisfies(exception -> assertThat(((ApiException) exception).code()).isEqualTo(ErrorCode.INVALID_REQUEST));
+        assertThat(store.authorizedTools).isEmpty();
+    }
+
+    @Test
+    void authorizesPerCallToolWithOneTimeGrant() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.PER_CALL_AUTH_REQUIRED);
+        FakeAuthorizationStore store = new FakeAuthorizationStore(false);
+        ConversationAuthorizationService service = new ConversationAuthorizationService(
+                policies,
+                store,
+                Duration.ofDays(7),
+                Duration.ofDays(30));
+
+        service.authorize("agent-a:user-42:conversation-99", "tool-x", 120L);
+
+        assertThat(store.authorizedToolId).isEqualTo("tool-x");
+        assertThat(store.authorizedTtl).isEqualTo(Duration.ofMinutes(2));
+    }
+
+    @Test
     void authorizesBatchAfterValidatingAllTools() {
         FakePolicyRepository policies = FakePolicyRepository.withPolicies(Map.of(
                 "tool-x", AuthMode.USER_AUTH_REQUIRED,
@@ -45,13 +95,15 @@ class ConversationAuthorizationServiceTest {
 
         BatchConversationAuthorizationResult result = service.authorizeBatch(
                 "agent-a:user-42:conversation-99",
-                List.of("tool-x", "tool-y"));
+                List.of("tool-x", "tool-y"),
+                60L);
 
         assertThat(result.status()).isEqualTo(AuthorizationStatus.AUTHORIZED);
         assertThat(result.tokenId()).isEqualTo("agent-a:user-42:conversation-99");
         assertThat(result.toolCount()).isEqualTo(2);
         assertThat(result.toolIds()).containsExactly("tool-x", "tool-y");
         assertThat(store.authorizedTools).containsExactly("tool-x", "tool-y");
+        assertThat(store.authorizedTtl).isEqualTo(Duration.ofMinutes(1));
     }
 
     @Test
@@ -70,6 +122,28 @@ class ConversationAuthorizationServiceTest {
         ApiException exception = (ApiException) thrown;
         assertThat(exception.code()).isEqualTo(ErrorCode.AUTHORIZATION_NOT_REQUIRED);
         assertThat(store.authorizedTools).isEmpty();
+    }
+
+    @Test
+    void batchAuthorizationAcceptsPerCallTools() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicies(Map.of(
+                "tool-x", AuthMode.USER_AUTH_REQUIRED,
+                "tool-y", AuthMode.PER_CALL_AUTH_REQUIRED));
+        FakeAuthorizationStore store = new FakeAuthorizationStore(false);
+        ConversationAuthorizationService service = new ConversationAuthorizationService(
+                policies,
+                store,
+                Duration.ofDays(7),
+                Duration.ofDays(30));
+
+        BatchConversationAuthorizationResult result = service.authorizeBatch(
+                "agent-a:user-42:conversation-99",
+                List.of("tool-x", "tool-y"),
+                null);
+
+        assertThat(result.status()).isEqualTo(AuthorizationStatus.AUTHORIZED);
+        assertThat(store.authorizedTools).containsExactly("tool-x", "tool-y");
+        assertThat(store.authorizedTtl).isEqualTo(Duration.ofDays(7));
     }
 
     @Test
@@ -304,6 +378,11 @@ class ConversationAuthorizationServiceTest {
             if (failExists) {
                 throw new IllegalStateException("redis exists unavailable");
             }
+            return exists;
+        }
+
+        @Override
+        public boolean consume(String tokenId, String toolId) {
             return exists;
         }
 

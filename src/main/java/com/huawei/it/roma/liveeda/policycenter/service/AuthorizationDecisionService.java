@@ -108,6 +108,9 @@ public class AuthorizationDecisionService {
             return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
                     AuthorizationDecision.allow(DecisionReason.NO_AUTH_REQUIRED));
         }
+        if (authMode == AuthMode.PER_CALL_AUTH_REQUIRED) {
+            return decidePerCallAuthorization(tokenId, toolId);
+        }
 
         boolean authorized;
         try {
@@ -131,6 +134,30 @@ public class AuthorizationDecisionService {
         }
         return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
                 AuthorizationDecision.authorizationRequired());
+    }
+
+    private AuthorizationDecision decidePerCallAuthorization(TokenId tokenId, String toolId) {
+        boolean authorized;
+        try {
+            authorized = authorizationStore.consume(tokenId.raw(), toolId);
+        } catch (RuntimeException exception) {
+            log.warn("AUTHORIZATION_DECISION_FAIL_CLOSED tokenId={} agentId={} userId={} conversationId={} toolId={} reason={}",
+                    tokenId.raw(),
+                    tokenId.agentId(),
+                    tokenId.userId(),
+                    tokenId.conversationId(),
+                    toolId,
+                    DecisionReason.AUTHORIZATION_STORE_UNAVAILABLE,
+                    exception);
+            return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
+                    AuthorizationDecision.deny(DecisionReason.AUTHORIZATION_STORE_UNAVAILABLE));
+        }
+        if (authorized) {
+            return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
+                    AuthorizationDecision.allow(DecisionReason.PER_CALL_AUTHORIZED));
+        }
+        return auditAndReturn(tokenId.raw(), tokenId.agentId(), toolId,
+                AuthorizationDecision.authorizationRequired(DecisionReason.PER_CALL_AUTHORIZATION_REQUIRED));
     }
 
     private AuthorizationDecision auditAndReturn(

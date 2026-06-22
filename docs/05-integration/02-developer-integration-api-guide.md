@@ -46,6 +46,7 @@ POLICY_CENTER_BASE_URL = 策略中心运行面地址
 authMode:
   NO_AUTH_REQUIRED   = 无需用户授权
   USER_AUTH_REQUIRED = 需要用户授权
+  PER_CALL_AUTH_REQUIRED = 每次调用都需要用户授权
 
 accessScope:
   PUBLIC     = 所有用户
@@ -165,7 +166,8 @@ X-Trace-Id: trace-20260616-301
 
 {
   "tokenId": "agent-a:user-42:conversation-99",
-  "toolId": "crm.customer.delete"
+  "toolId": "crm.customer.delete",
+  "expiresInSeconds": 3600
 }
 ```
 
@@ -183,6 +185,9 @@ X-Trace-Id: trace-20260616-301
 
 - 只能由业务后端服务端调用，浏览器页面不要直连策略中心。
 - 授权页面和服务端授权会话最长有效 1 分钟。
+- `expiresInSeconds` 可选，表示授权记录有效期，单位秒；不传时使用策略中心默认 TTL。
+- 对 `USER_AUTH_REQUIRED` 工具，TTL 内重复调用同一工具可继续放行。
+- 对 `PER_CALL_AUTH_REQUIRED` 工具，用户确认后只允许下一次重试，策略中心放行时会消费该授权记录。
 - 重复调用同一个 `tokenId + toolId` 是幂等的。
 - `409 TOOL_NOT_BOUND` 表示工具未绑定，不能继续授权。
 - `409 AUTHORIZATION_NOT_REQUIRED` 表示工具无需授权，不应写入授权。
@@ -343,6 +348,12 @@ X-Trace-Id: trace-20260616-306
       "toolName": "删除客户",
       "toolId": "crm.customer.delete",
       "authMode": "USER_AUTH_REQUIRED"
+    },
+    {
+      "serverName": "财经服务",
+      "toolName": "提交交易",
+      "toolId": "crm.trade.submit",
+      "authMode": "PER_CALL_AUTH_REQUIRED"
     }
   ]
 }
@@ -381,7 +392,19 @@ X-Trace-Id: trace-20260616-306
 
 验收结果：首次调用被拦截，用户同意后任务恢复并完成。
 
-### 6.3 拒绝和异常
+### 6.3 每次都需要用户授权工具
+
+1. 策略中心把工具配置为 `PER_CALL_AUTH_REQUIRED`。
+2. Agent 调用 MCP 网关。
+3. MCP 网关鉴权得到 `AUTHORIZATION_REQUIRED + PER_CALL_AUTHORIZATION_REQUIRED`。
+4. 用户同意后，业务后端调用 `POST /internal/conversation-authorizations`，可按页面选择传入 `expiresInSeconds`。
+5. Agent 重新调用 MCP 网关。
+6. MCP 网关再次鉴权得到 `ALLOW + PER_CALL_AUTHORIZED`，策略中心同时消费本次授权。
+7. 下一次调用同一工具时，再次进入用户授权流程。
+
+验收结果：用户每确认一次，只允许一次工具重试通过。
+
+### 6.4 拒绝和异常
 
 以下情况都不能弹授权页，也不能继续调用 MCP 工具：
 
@@ -438,7 +461,7 @@ X-Trace-Id: trace-20260616-306
 - MCP 工具已登记并打开安全开关。
 - Agent 已发布并绑定目标 MCP 工具。
 - 策略中心已配置工具授权标签和人员策略。
-- `NO_AUTH_REQUIRED`、`USER_AUTH_REQUIRED`、未绑定、无权限、系统异常场景均已验证。
+- `NO_AUTH_REQUIRED`、`USER_AUTH_REQUIRED`、`PER_CALL_AUTH_REQUIRED`、未绑定、无权限、系统异常场景均已验证。
 
 ## 9. 相关文档
 

@@ -258,6 +258,11 @@ class ToolAuthorizationPrecheckControllerTest {
         }
 
         @Override
+        public boolean consume(String tokenId, String toolId) {
+            return exists;
+        }
+
+        @Override
         public void authorize(String tokenId, String toolId, Duration ttl) {
         }
 
@@ -271,6 +276,11 @@ class ToolAuthorizationPrecheckControllerTest {
 
         @Override
         public boolean exists(String tokenId, String toolId) {
+            throw new IllegalStateException("authorization store down");
+        }
+
+        @Override
+        public boolean consume(String tokenId, String toolId) {
             throw new IllegalStateException("authorization store down");
         }
 

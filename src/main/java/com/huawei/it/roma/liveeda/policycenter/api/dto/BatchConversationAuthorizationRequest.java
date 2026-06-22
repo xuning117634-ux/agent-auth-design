@@ -7,5 +7,6 @@ import java.util.List;
 
 public record BatchConversationAuthorizationRequest(
         @NotEmpty
-        List<@NotBlank String> toolIds) {
+        List<@NotBlank String> toolIds,
+        Long expiresInSeconds) {
 }

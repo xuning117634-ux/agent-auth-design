@@ -37,17 +37,19 @@ class AdminToolPolicyControllerTest {
                                 {
                                   "tools": [
                                     {"toolId": "tool-a", "authMode": "NO_AUTH_REQUIRED"},
+                                    {"toolId": "tool-per-call", "authMode": "PER_CALL_AUTH_REQUIRED"},
                                     {"toolId": "tool-b"}
                                   ]
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.agentId").value("agent-a"))
-                .andExpect(jsonPath("$.toolCount").value(2))
+                .andExpect(jsonPath("$.toolCount").value(3))
                 .andExpect(jsonPath("$.updatedAt").isString());
 
         assertThat(repository.saved).containsExactly(
                 new ToolPolicy("agent-a", "tool-a", AuthMode.NO_AUTH_REQUIRED),
+                new ToolPolicy("agent-a", "tool-per-call", AuthMode.PER_CALL_AUTH_REQUIRED),
                 new ToolPolicy("agent-a", "tool-b", AuthMode.USER_AUTH_REQUIRED));
     }
 

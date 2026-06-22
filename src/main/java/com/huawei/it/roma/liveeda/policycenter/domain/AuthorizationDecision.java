@@ -10,6 +10,10 @@ public record AuthorizationDecision(Decision decision, DecisionReason reason) {
         return new AuthorizationDecision(Decision.AUTHORIZATION_REQUIRED, DecisionReason.USER_AUTHORIZATION_REQUIRED);
     }
 
+    public static AuthorizationDecision authorizationRequired(DecisionReason reason) {
+        return new AuthorizationDecision(Decision.AUTHORIZATION_REQUIRED, reason);
+    }
+
     public static AuthorizationDecision deny(DecisionReason reason) {
         return new AuthorizationDecision(Decision.DENY, reason);
     }
