@@ -175,8 +175,10 @@ class UserPolicyServiceTest {
         assertThat(tools)
                 .extracting(AccessibleToolView::toolId)
                 .containsExactly("tool-a", "tool-c");
+        assertThat(tools.get(0).serverId()).isEqualTo("crm-service");
         assertThat(tools.get(0).serverName()).isEqualTo("CRM Service");
         assertThat(tools.get(0).toolName()).isEqualTo("Customer Query");
+        assertThat(tools.get(1).serverId()).isNull();
         assertThat(tools.get(1).serverName()).isNull();
         assertThat(tools.get(1).toolName()).isNull();
         assertThat(catalog.lastToolIds).containsExactly("tool-a", "tool-c");

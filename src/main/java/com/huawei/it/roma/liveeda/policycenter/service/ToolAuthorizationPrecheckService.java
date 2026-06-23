@@ -52,7 +52,7 @@ public class ToolAuthorizationPrecheckService {
         for (ToolAuthorizationPrecheckTool tool : tools) {
             validateTool(tool);
             AgentPolicyTool catalogTool = findCatalogTool(tokenId, tool);
-            AuthorizationDecision decision = decisionService.decide(tokenId.raw(), catalogTool.toolId());
+            AuthorizationDecision decision = decisionService.precheck(tokenId.raw(), catalogTool.toolId());
             if (decision.reason() == DecisionReason.POLICY_STORE_UNAVAILABLE) {
                 throw new ApiException(ErrorCode.POLICY_STORE_UNAVAILABLE, "policy store is unavailable");
             }

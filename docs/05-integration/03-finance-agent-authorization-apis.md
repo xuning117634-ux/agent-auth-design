@@ -86,8 +86,9 @@ LIMIT 1;
 
 策略判断规则：
 
-- 对解析出的每个 `toolId` 复用现有授权决策逻辑。
+- 对解析出的每个 `toolId` 复用授权决策的只读预检逻辑。
 - 只返回 `decision = AUTHORIZATION_REQUIRED` 的工具。
+- 对 `PER_CALL_AUTH_REQUIRED` 工具，预检只检查一次性授权是否存在，不消费授权记录；消费只发生在 MCP 网关正式鉴权时。
 - 如果没有需要授权的工具，返回 HTTP `200 + tools: []`。
 - 如果存在需要授权的工具，返回 HTTP `200 + tools`。
 - 如果策略库或 Redis 不可用，返回 HTTP `503`，调用方不得继续执行 MCP 工具。

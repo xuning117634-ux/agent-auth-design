@@ -338,6 +338,7 @@ public class UserPolicyService implements ToolUserPolicyEvaluator {
 
     private AccessibleToolView toAccessibleToolView(ToolPolicy policy, AgentPolicyTool catalog) {
         return new AccessibleToolView(
+                catalog == null ? null : catalog.serviceId(),
                 catalog == null ? null : catalog.effectiveServerName(),
                 catalog == null ? null : catalog.toolName(),
                 policy.toolId(),
