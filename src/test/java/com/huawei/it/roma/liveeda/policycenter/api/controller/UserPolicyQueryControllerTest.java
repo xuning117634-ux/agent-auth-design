@@ -75,6 +75,7 @@ class UserPolicyQueryControllerTest {
                 .andExpect(jsonPath("$.agentId").value("agent-a"))
                 .andExpect(jsonPath("$.userId").value("user-42"))
                 .andExpect(jsonPath("$.tools.length()").value(2))
+                .andExpect(jsonPath("$.tools[0].serverId").value("crm-service"))
                 .andExpect(jsonPath("$.tools[0].serverName").value("CRM Service"))
                 .andExpect(jsonPath("$.tools[0].toolName").value("Customer Query"))
                 .andExpect(jsonPath("$.tools[0].toolId").value("tool-a"))

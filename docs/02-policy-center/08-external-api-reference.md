@@ -640,7 +640,7 @@ GET /internal/users/{userId}/agents
 GET /internal/agents/{agentId}/users/{userId}/tools
 ```
 
-返回该 Agent 下当前用户可访问的已绑定工具，响应包含 `serverName + toolName + toolId + authMode`。PUBLIC Tool 对所有用户返回，RESTRICTED Tool 只对其白名单用户返回。`serverName` 和 `toolName` 仅用于展示，不参与授权判断；目录记录缺失时可能为 `null`。
+返回该 Agent 下当前用户可访问的已绑定工具，响应包含 `serverId + serverName + toolName + toolId + authMode`。PUBLIC Tool 对所有用户返回，RESTRICTED Tool 只对其白名单用户返回。`serverId`、`serverName` 和 `toolName` 仅用于展示，不参与授权判断；目录记录缺失时可能为 `null`。
 
 ## 11. 调用方处理要求
 

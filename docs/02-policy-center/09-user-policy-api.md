@@ -430,12 +430,14 @@ X-Trace-Id: trace-20260615-005
   "userId": "user-42",
   "tools": [
     {
+      "serverId": "finance-server",
       "serverName": "财经服务",
       "toolName": "查询客户",
       "toolId": "crm.customer.query",
       "authMode": "NO_AUTH_REQUIRED"
     },
     {
+      "serverId": "finance-server",
       "serverName": "财经服务",
       "toolName": "删除客户",
       "toolId": "crm.customer.delete",
@@ -453,9 +455,10 @@ X-Trace-Id: trace-20260615-005
 - 不检查 Redis 当前对话授权。
 - `authMode` 只表示工具是否需要对话授权，不表示当前对话已经授权。
 - 历史空 `authMode` 按 `USER_AUTH_REQUIRED` 返回。
+- `serverId` 来自 `agent_policy_tool.service_id`。
 - `serverName` 来自 `agent_policy_tool.service_name`，为空时回退为 `service_id`。
 - `toolName` 来自 `agent_policy_tool.tool_name`。
-- `serverName` 和 `toolName` 仅用于展示，不参与授权判断；目录记录缺失时返回 `null`。
+- `serverId`、`serverName` 和 `toolName` 仅用于展示，不参与授权判断；目录记录缺失时返回 `null`。
 - 没有可访问工具时返回空数组，不返回 `404`。
 
 ## 6. 工具运行时人员策略决策

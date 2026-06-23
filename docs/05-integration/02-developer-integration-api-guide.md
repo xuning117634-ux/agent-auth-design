@@ -341,18 +341,21 @@ X-Trace-Id: trace-20260616-306
   "userId": "user-42",
   "tools": [
     {
+      "serverId": "finance-server",
       "serverName": "财经服务",
       "toolName": "查询客户",
       "toolId": "crm.customer.query",
       "authMode": "NO_AUTH_REQUIRED"
     },
     {
+      "serverId": "finance-server",
       "serverName": "财经服务",
       "toolName": "删除客户",
       "toolId": "crm.customer.delete",
       "authMode": "USER_AUTH_REQUIRED"
     },
     {
+      "serverId": "finance-server",
       "serverName": "财经服务",
       "toolName": "提交交易",
       "toolId": "crm.trade.submit",
@@ -366,7 +369,7 @@ X-Trace-Id: trace-20260616-306
 
 - 只返回当前 Agent 已绑定且当前用户可访问的工具。
 - `authMode` 表示工具是否需要用户授权，不表示当前对话已经授权。
-- `serverName` 和 `toolName` 为展示信息，不参与授权判断；目录记录缺失时可能为 `null`。
+- `serverId`、`serverName` 和 `toolName` 为展示信息，不参与授权判断；目录记录缺失时可能为 `null`。
 
 ## 6. 标准联调流程
 

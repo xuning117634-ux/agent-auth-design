@@ -110,6 +110,20 @@ class AuthorizationDecisionServiceTest {
     }
 
     @Test
+    void precheckDoesNotConsumePerCallAuthorizationWhenGrantExists() {
+        FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.PER_CALL_AUTH_REQUIRED);
+        FakeAuthorizationStore grants = new FakeAuthorizationStore(true);
+        AuthorizationDecisionService service = new AuthorizationDecisionService(policies, grants);
+
+        AuthorizationDecision decision = service.precheck("agent-a:user-42:conversation-99", "tool-x");
+
+        assertThat(decision.decision()).isEqualTo(Decision.ALLOW);
+        assertThat(decision.reason()).isEqualTo(DecisionReason.PER_CALL_AUTHORIZED);
+        assertThat(grants.existsCalls).isOne();
+        assertThat(grants.consumeCalls).isZero();
+    }
+
+    @Test
     void skipsToolUserPolicyWhenEvaluatorAllowsTool() {
         FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.NO_AUTH_REQUIRED);
         FakeAuthorizationStore grants = new FakeAuthorizationStore(false);

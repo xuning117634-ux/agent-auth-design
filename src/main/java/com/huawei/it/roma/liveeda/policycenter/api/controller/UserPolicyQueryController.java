@@ -61,7 +61,12 @@ public class UserPolicyQueryController {
     }
 
     private AccessibleToolItemResponse toToolResponse(AccessibleToolView tool) {
-        return new AccessibleToolItemResponse(tool.serverName(), tool.toolName(), tool.toolId(), tool.authMode());
+        return new AccessibleToolItemResponse(
+                tool.serverId(),
+                tool.serverName(),
+                tool.toolName(),
+                tool.toolId(),
+                tool.authMode());
     }
 
     private void ensureNotBlank(String value, String message) {

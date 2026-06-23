@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -114,6 +115,61 @@ class ToolAuthorizationPrecheckControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tokenid").value("agent-a:user-42:conversation-99"))
                 .andExpect(jsonPath("$.tools").isEmpty());
+    }
+
+    @Test
+    void perCallPrecheckDoesNotConsumeExistingOneTimeAuthorization() throws Exception {
+        FixedAuthorizationStore authorizationStore = new FixedAuthorizationStore(true);
+        MockMvc mockMvc = mockMvc(
+                new FixedCatalogRepository(false),
+                new FixedPolicyRepository(AuthMode.PER_CALL_AUTH_REQUIRED),
+                authorizationStore);
+
+        mockMvc.perform(post("/internal/tool-authorization-prechecks")
+                        .header("tokenid", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tools": [
+                                    {
+                                      "serverId": "finance-server",
+                                      "toolName": "quoteQuery"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tools").isEmpty());
+
+        assertThat(authorizationStore.consumeCallCount).isZero();
+    }
+
+    @Test
+    void perCallPrecheckReturnsRequiredToolWhenOneTimeAuthorizationIsMissing() throws Exception {
+        FixedAuthorizationStore authorizationStore = new FixedAuthorizationStore(false);
+        MockMvc mockMvc = mockMvc(
+                new FixedCatalogRepository(false),
+                new FixedPolicyRepository(AuthMode.PER_CALL_AUTH_REQUIRED),
+                authorizationStore);
+
+        mockMvc.perform(post("/internal/tool-authorization-prechecks")
+                        .header("tokenid", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tools": [
+                                    {
+                                      "serverId": "finance-server",
+                                      "toolName": "quoteQuery"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tools[0].toolId").value("finance.quote.query"))
+                .andExpect(jsonPath("$.tools[0].decision").value("AUTHORIZATION_REQUIRED"));
+
+        assertThat(authorizationStore.consumeCallCount).isZero();
     }
 
     @Test
@@ -292,6 +348,7 @@ class ToolAuthorizationPrecheckControllerTest {
 
     private static final class FixedAuthorizationStore implements ConversationAuthorizationStore {
         private final boolean exists;
+        private int consumeCallCount;
 
         private FixedAuthorizationStore(boolean exists) {
             this.exists = exists;
@@ -304,6 +361,7 @@ class ToolAuthorizationPrecheckControllerTest {
 
         @Override
         public boolean consume(String tokenId, String toolId) {
+            consumeCallCount++;
             return exists;
         }
 

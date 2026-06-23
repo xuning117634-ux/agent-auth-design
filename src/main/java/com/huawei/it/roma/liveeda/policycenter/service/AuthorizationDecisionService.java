@@ -53,6 +53,14 @@ public class AuthorizationDecisionService {
     }
 
     public AuthorizationDecision decide(String tokenIdRaw, String toolId) {
+        return decide(tokenIdRaw, toolId, true);
+    }
+
+    public AuthorizationDecision precheck(String tokenIdRaw, String toolId) {
+        return decide(tokenIdRaw, toolId, false);
+    }
+
+    private AuthorizationDecision decide(String tokenIdRaw, String toolId, boolean consumePerCallAuthorization) {
         TokenId tokenId;
         try {
             tokenId = TokenId.parse(tokenIdRaw);
@@ -109,7 +117,7 @@ public class AuthorizationDecisionService {
                     AuthorizationDecision.allow(DecisionReason.NO_AUTH_REQUIRED));
         }
         if (authMode == AuthMode.PER_CALL_AUTH_REQUIRED) {
-            return decidePerCallAuthorization(tokenId, toolId);
+            return decidePerCallAuthorization(tokenId, toolId, consumePerCallAuthorization);
         }
 
         boolean authorized;
@@ -136,10 +144,15 @@ public class AuthorizationDecisionService {
                 AuthorizationDecision.authorizationRequired());
     }
 
-    private AuthorizationDecision decidePerCallAuthorization(TokenId tokenId, String toolId) {
+    private AuthorizationDecision decidePerCallAuthorization(
+            TokenId tokenId,
+            String toolId,
+            boolean consumePerCallAuthorization) {
         boolean authorized;
         try {
-            authorized = authorizationStore.consume(tokenId.raw(), toolId);
+            authorized = consumePerCallAuthorization
+                    ? authorizationStore.consume(tokenId.raw(), toolId)
+                    : authorizationStore.exists(tokenId.raw(), toolId);
         } catch (RuntimeException exception) {
             log.warn("AUTHORIZATION_DECISION_FAIL_CLOSED tokenId={} agentId={} userId={} conversationId={} toolId={} reason={}",
                     tokenId.raw(),
