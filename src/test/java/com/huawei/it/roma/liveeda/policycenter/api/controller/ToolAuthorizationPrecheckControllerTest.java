@@ -43,6 +43,7 @@ class ToolAuthorizationPrecheckControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tokenid").value("agent-a:user-42:conversation-99"))
+                .andExpect(jsonPath("$.tools[0].serverId").value("finance-server"))
                 .andExpect(jsonPath("$.tools[0].serverName").value("财经服务"))
                 .andExpect(jsonPath("$.tools[0].toolName").value("quoteQuery"))
                 .andExpect(jsonPath("$.tools[0].toolId").value("finance.quote.query"))

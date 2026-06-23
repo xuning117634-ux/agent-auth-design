@@ -77,9 +77,10 @@ LIMIT 1;
 
 说明：
 
-- `agent_policy_tool` 只作为外部工具目录数据源，用来把 `serverId + toolName` 解析成 `serverName + toolId`。
+- `agent_policy_tool` 只作为外部工具目录数据源，用来把 `serverId + toolName` 解析成 `serverId + serverName + toolId`。
 - 它不替代现有 `agent_tool_policy`，也不影响 MCP 网关运行时授权决策。
 - 本仓库不维护 `agent_policy_tool` 建表 SQL；本地联调需要调用方自行创建或准备该表。
+- `service_id` 对应响应 `serverId`。
 - `service_name` 对应响应 `serverName`；为空时回退为 `service_id`。
 - 任一输入工具查不到时，整个请求返回 `400 INVALID_REQUEST`。
 
@@ -102,6 +103,7 @@ HTTP/1.1 200 OK
   "tokenid": "agent-a:user-42:conversation-99",
   "tools": [
     {
+      "serverId": "finance-server",
       "serverName": "财经服务",
       "toolName": "quoteQuery",
       "toolId": "finance.quote.query",
