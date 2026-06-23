@@ -32,9 +32,13 @@ public class ConversationAuthorizationController {
 
     @PostMapping("/internal/conversation-authorizations/batch")
     BatchConversationAuthorizationResult authorizeBatch(
-            @RequestHeader(value = "tokenid", required = false) String tokenid,
+            @RequestHeader(value = AgentGatewayHeaders.ACCESS_TOKEN, required = false) String accessToken,
+            @RequestHeader(value = AgentGatewayHeaders.LEGACY_TOKEN_ID, required = false) String legacyTokenId,
             @Valid @RequestBody BatchConversationAuthorizationRequest request) {
-        return service.authorizeBatch(tokenid, request.toolIds(), request.expiresInSeconds());
+        return service.authorizeBatch(
+                AgentGatewayHeaders.resolveTokenId(accessToken, legacyTokenId),
+                request.toolIds(),
+                request.expiresInSeconds());
     }
 
     @PostMapping("/internal/conversation-authorizations/status")

@@ -245,8 +245,7 @@ try {
 
     $precheckRequired = Invoke-PolicyApi -Method POST `
         -Path "/internal/tool-authorization-prechecks" `
-        -ExpectedStatus 403 `
-        -ExtraHeaders @{ tokenid = $tokenId } `
+        -ExtraHeaders @{ "X-AGW-ACCESS-TOKEN" = $tokenId } `
         -Body $precheckRequest
     Assert-Equal "Precheck required tokenid" $precheckRequired.tokenid $tokenId
     Assert-Equal "Precheck required tool count" @($precheckRequired.tools).Count 1
@@ -262,7 +261,7 @@ try {
 
     $batchAuthorization = Invoke-PolicyApi -Method POST `
         -Path "/internal/conversation-authorizations/batch" `
-        -ExtraHeaders @{ tokenid = $tokenId } `
+        -ExtraHeaders @{ "X-AGW-ACCESS-TOKEN" = $tokenId } `
         -Body @{
             toolIds = @($ToolId)
         }
@@ -274,7 +273,7 @@ try {
     $precheckAfterAuthorization = Invoke-PolicyApi -Method POST `
         -Path "/internal/tool-authorization-prechecks" `
         -ExpectedStatus 200 `
-        -ExtraHeaders @{ tokenid = $tokenId } `
+        -ExtraHeaders @{ "X-AGW-ACCESS-TOKEN" = $tokenId } `
         -Body @{
             tools = @(
                 @{
@@ -289,7 +288,7 @@ try {
     $duplicateBatch = Invoke-PolicyApi -Method POST `
         -Path "/internal/conversation-authorizations/batch" `
         -ExpectedStatus 400 `
-        -ExtraHeaders @{ tokenid = $tokenId } `
+        -ExtraHeaders @{ "X-AGW-ACCESS-TOKEN" = $tokenId } `
         -Body @{
             toolIds = @($ToolId, $ToolId)
         }

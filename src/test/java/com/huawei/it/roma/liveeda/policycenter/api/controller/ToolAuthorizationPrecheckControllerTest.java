@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 class ToolAuthorizationPrecheckControllerTest {
 
     @Test
-    void returnsForbiddenWithTokenIdAndAuthorizationRequiredTools() throws Exception {
+    void returnsOkWithTokenIdAndAuthorizationRequiredTools() throws Exception {
         MockMvc mockMvc = mockMvc(AuthMode.USER_AUTH_REQUIRED, false);
 
         mockMvc.perform(post("/internal/tool-authorization-prechecks")
@@ -41,12 +41,56 @@ class ToolAuthorizationPrecheckControllerTest {
                                   ]
                                 }
                                 """))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.tokenid").value("agent-a:user-42:conversation-99"))
                 .andExpect(jsonPath("$.tools[0].serverName").value("财经服务"))
                 .andExpect(jsonPath("$.tools[0].toolName").value("quoteQuery"))
                 .andExpect(jsonPath("$.tools[0].toolId").value("finance.quote.query"))
                 .andExpect(jsonPath("$.tools[0].decision").value("AUTHORIZATION_REQUIRED"));
+    }
+
+    @Test
+    void returnsOkWithAgwAccessTokenHeader() throws Exception {
+        MockMvc mockMvc = mockMvc(AuthMode.USER_AUTH_REQUIRED, false);
+
+        mockMvc.perform(post("/internal/tool-authorization-prechecks")
+                        .header("X-AGW-ACCESS-TOKEN", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tools": [
+                                    {
+                                      "serverId": "finance-server",
+                                      "toolName": "quoteQuery"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tokenid").value("agent-a:user-42:conversation-99"))
+                .andExpect(jsonPath("$.tools[0].decision").value("AUTHORIZATION_REQUIRED"));
+    }
+
+    @Test
+    void prefersAgwAccessTokenOverLegacyTokenIdHeaderForPrecheck() throws Exception {
+        MockMvc mockMvc = mockMvc(AuthMode.USER_AUTH_REQUIRED, false);
+
+        mockMvc.perform(post("/internal/tool-authorization-prechecks")
+                        .header("X-AGW-ACCESS-TOKEN", "agent-new:user-42:conversation-99")
+                        .header("tokenid", "agent-old:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tools": [
+                                    {
+                                      "serverId": "finance-server",
+                                      "toolName": "quoteQuery"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tokenid").value("agent-new:user-42:conversation-99"));
     }
 
     @Test

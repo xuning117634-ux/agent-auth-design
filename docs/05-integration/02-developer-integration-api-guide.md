@@ -107,7 +107,7 @@ Agent 网关处理后会：
 3. 按 `{agentId}:{userId}:{sessionId}` 生成 `tokenId`。
 4. 写入 Redis，默认 TTL 为 1 小时。
 5. 转发请求给业务 Agent。
-6. 转发时移除原始 `Cookie` 头，并向 Agent 注入 `tokenId` 头。
+6. 转发时移除原始 `Cookie` 头，并向 Agent 注入 `X-AGW-ACCESS-TOKEN` 头，Header 值为完整 `tokenId`。
 
 成功响应：
 
@@ -140,12 +140,14 @@ data: {"jsonrpc":"2.0","id":null,"error":{"code":-32001,"message":"Agent not fou
 
 ## 4. 业务 Agent 调用 MCP 网关
 
-业务 Agent 从 Agent 网关收到请求后，应读取 Agent 网关注入的 `tokenId` Header，并在调用 MCP 网关时原样透传。
+业务 Agent 从 Agent 网关收到请求后，应读取 Agent 网关注入的 `X-AGW-ACCESS-TOKEN` Header，并在调用 MCP 网关时原样透传。
+
+说明：旧 Header `tokenid` 只作为策略中心部分扩展接口的兼容 fallback，新接入应统一使用 `X-AGW-ACCESS-TOKEN`。
 
 MCP 网关工具调用入口、请求体和响应格式由 MCP 网关团队提供。通用安全要求如下：
 
 - 调用 MCP 工具必须经过 MCP 网关。
-- 调用 MCP 网关时必须携带 `tokenId`、目标工具标识和工具参数。
+- 调用 MCP 网关时必须携带 `X-AGW-ACCESS-TOKEN`、目标工具标识和工具参数。
 - 不直接调用 MCP Server 或业务 API。
 - 不读取、不保存、不打印 Cookie。
 - MCP 网关仍是最终工具调用鉴权点。
@@ -186,6 +188,7 @@ X-Trace-Id: trace-20260616-301
 - 只能由业务后端服务端调用，浏览器页面不要直连策略中心。
 - 授权页面和服务端授权会话最长有效 1 分钟。
 - `expiresInSeconds` 可选，表示授权记录有效期，单位秒；不传时使用策略中心默认 TTL。
+- `expiresInSeconds` 必须大于 `0`，且不得超过策略中心配置的最大 TTL。
 - 对 `USER_AUTH_REQUIRED` 工具，TTL 内重复调用同一工具可继续放行。
 - 对 `PER_CALL_AUTH_REQUIRED` 工具，用户确认后只允许下一次重试，策略中心放行时会消费该授权记录。
 - 重复调用同一个 `tokenId + toolId` 是幂等的。

@@ -76,6 +76,39 @@ class ConversationAuthorizationControllerTest {
     }
 
     @Test
+    void confirmsBatchConversationAuthorizationFromAgwAccessTokenHeader() throws Exception {
+        mockMvc.perform(post("/internal/conversation-authorizations/batch")
+                        .header("X-AGW-ACCESS-TOKEN", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "toolIds": [
+                                    "tool-x"
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tokenId").value("agent-a:user-42:conversation-99"));
+    }
+
+    @Test
+    void prefersAgwAccessTokenOverLegacyTokenIdHeaderForBatchAuthorization() throws Exception {
+        mockMvc.perform(post("/internal/conversation-authorizations/batch")
+                        .header("X-AGW-ACCESS-TOKEN", "agent-new:user-42:conversation-99")
+                        .header("tokenid", "agent-old:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "toolIds": [
+                                    "tool-x"
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tokenId").value("agent-new:user-42:conversation-99"));
+    }
+
+    @Test
     void rejectsBatchConversationAuthorizationWithDuplicateToolIds() throws Exception {
         mockMvc.perform(post("/internal/conversation-authorizations/batch")
                         .header("tokenid", "agent-a:user-42:conversation-99")
