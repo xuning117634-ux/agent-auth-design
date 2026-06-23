@@ -249,6 +249,7 @@ try {
         -Body $precheckRequest
     Assert-Equal "Precheck required tokenid" $precheckRequired.tokenid $tokenId
     Assert-Equal "Precheck required tool count" @($precheckRequired.tools).Count 1
+    Assert-Equal "Precheck required serverId" $precheckRequired.tools[0].serverId $ServerId
     Assert-Equal "Precheck required toolId" $precheckRequired.tools[0].toolId $ToolId
     Assert-Equal "Precheck required toolName" $precheckRequired.tools[0].toolName $ToolName
     Assert-Equal "Precheck required decision" $precheckRequired.tools[0].decision "AUTHORIZATION_REQUIRED"

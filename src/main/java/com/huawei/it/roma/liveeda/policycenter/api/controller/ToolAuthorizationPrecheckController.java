@@ -36,6 +36,7 @@ public class ToolAuthorizationPrecheckController {
                         result.tokenid(),
                         result.tools().stream()
                                 .map(tool -> new ToolAuthorizationPrecheckItemResponse(
+                                        tool.serverId(),
                                         tool.serverName(),
                                         tool.toolName(),
                                         tool.toolId(),

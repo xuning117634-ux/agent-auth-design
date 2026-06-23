@@ -61,6 +61,7 @@ public class ToolAuthorizationPrecheckService {
             }
             if (decision.decision() == Decision.AUTHORIZATION_REQUIRED) {
                 requiredTools.add(new ToolAuthorizationRequiredTool(
+                        catalogTool.serviceId(),
                         catalogTool.effectiveServerName(),
                         catalogTool.toolName(),
                         catalogTool.toolId(),
