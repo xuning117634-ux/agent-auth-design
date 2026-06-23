@@ -7,7 +7,6 @@ import com.huawei.it.roma.liveeda.policycenter.service.ToolAuthorizationPrecheck
 import com.huawei.it.roma.liveeda.policycenter.service.ToolAuthorizationPrecheckService;
 import com.huawei.it.roma.liveeda.policycenter.service.ToolAuthorizationPrecheckTool;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,16 +24,15 @@ public class ToolAuthorizationPrecheckController {
 
     @PostMapping("/internal/tool-authorization-prechecks")
     ResponseEntity<ToolAuthorizationPrecheckResponse> precheck(
-            @RequestHeader(value = "tokenid", required = false) String tokenid,
+            @RequestHeader(value = AgentGatewayHeaders.ACCESS_TOKEN, required = false) String accessToken,
+            @RequestHeader(value = AgentGatewayHeaders.LEGACY_TOKEN_ID, required = false) String legacyTokenId,
             @Valid @RequestBody ToolAuthorizationPrecheckRequest request) {
         ToolAuthorizationPrecheckResult result = service.precheck(
-                tokenid,
+                AgentGatewayHeaders.resolveTokenId(accessToken, legacyTokenId),
                 request.tools().stream()
                         .map(tool -> new ToolAuthorizationPrecheckTool(tool.serverId(), tool.toolName()))
                         .toList());
-        HttpStatus status = result.tools().isEmpty() ? HttpStatus.OK : HttpStatus.FORBIDDEN;
-        return ResponseEntity.status(status)
-                .body(new ToolAuthorizationPrecheckResponse(
+        return ResponseEntity.ok(new ToolAuthorizationPrecheckResponse(
                         result.tokenid(),
                         result.tools().stream()
                                 .map(tool -> new ToolAuthorizationPrecheckItemResponse(

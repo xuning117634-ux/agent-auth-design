@@ -17,13 +17,15 @@
 
 ```http
 Content-Type: application/json
-tokenid: agent-a:user-42:conversation-99
+X-AGW-ACCESS-TOKEN: agent-a:user-42:conversation-99
 X-Trace-Id: trace-20260615-001
 ```
 
 规则：
 
-- `tokenid` 必传，格式仍为 `agentId:userId:conversationId`。
+- `X-AGW-ACCESS-TOKEN` 必传，值为策略中心需要的完整 `tokenId`，格式仍为 `agentId:userId:conversationId`。
+- 兼容旧调用方：如果 `X-AGW-ACCESS-TOKEN` 缺失或为空，策略中心会 fallback 读取旧 Header `tokenid`。
+- 预检响应字段仍保留为 `tokenid`，这是为了兼容既有调用方；新请求头仍统一使用 `X-AGW-ACCESS-TOKEN`。
 - `X-Trace-Id` 非必传；传了会透传，不传由策略中心生成。
 - V1 暂不做接口认证，生产接入前需要通过内网、网关或后续认证机制限制调用方。
 - Cookie、业务 Token、密钥不得传给策略中心。
@@ -32,7 +34,7 @@ X-Trace-Id: trace-20260615-001
 
 ```http
 POST /internal/tool-authorization-prechecks
-tokenid: agent-a:user-42:conversation-99
+X-AGW-ACCESS-TOKEN: agent-a:user-42:conversation-99
 Content-Type: application/json
 ```
 
@@ -58,7 +60,7 @@ Content-Type: application/json
 - `tools` 必须非空。
 - 每个工具必须提供 `serverId` 和 `toolName`。
 - 请求字段同时兼容 `serverId/serverid` 和 `toolName/toolname`。
-- 策略中心先从 Header `tokenid` 解析出 `agentId`，再用 `agentId + serverId + toolName` 查询 `agent_policy_tool`。
+- 策略中心先从 Header `X-AGW-ACCESS-TOKEN` 解析出 `agentId`，再用 `agentId + serverId + toolName` 查询 `agent_policy_tool`。
 
 目录查询规则：
 
@@ -85,14 +87,14 @@ LIMIT 1;
 
 - 对解析出的每个 `toolId` 复用现有授权决策逻辑。
 - 只返回 `decision = AUTHORIZATION_REQUIRED` 的工具。
-- 如果没有需要授权的工具，返回 HTTP `200`。
-- 如果存在需要授权的工具，返回 HTTP `403`。
+- 如果没有需要授权的工具，返回 HTTP `200 + tools: []`。
+- 如果存在需要授权的工具，返回 HTTP `200 + tools`。
 - 如果策略库或 Redis 不可用，返回 HTTP `503`，调用方不得继续执行 MCP 工具。
 
 存在需要授权工具时：
 
 ```http
-HTTP/1.1 403 Forbidden
+HTTP/1.1 200 OK
 ```
 
 ```json
@@ -136,7 +138,7 @@ HTTP/1.1 200 OK
 
 ```http
 POST /internal/conversation-authorizations/batch
-tokenid: agent-a:user-42:conversation-99
+X-AGW-ACCESS-TOKEN: agent-a:user-42:conversation-99
 Content-Type: application/json
 ```
 
@@ -172,8 +174,9 @@ Content-Type: application/json
 - 每个 `toolId` 必须非空。
 - 同一请求内 `toolId` 不得重复。
 - 策略中心先完成整批校验，再写入 Redis。
-- 任一工具未绑定当前 Agent、无需授权、`tokenid` 非法或策略库异常时，整批失败，不写入授权记录。
+- 任一工具未绑定当前 Agent、无需授权、访问 Token 非法或策略库异常时，整批失败，不写入授权记录。
 - `expiresInSeconds` 可选，表示授权记录相对有效期，单位秒；缺失时使用当前对话授权默认配置。
+- `expiresInSeconds` 必须大于 `0`，且不得超过策略中心配置的最大 TTL。
 - 校验通过后写入 `authz:{tokenId}:{toolId}`。
 - `USER_AUTH_REQUIRED` 工具在 TTL 内持续允许；`PER_CALL_AUTH_REQUIRED` 工具只允许下一次重试，命中后会被策略中心消费删除。
 - 重复授权保持幂等。
@@ -183,7 +186,7 @@ Content-Type: application/json
 
 | HTTP | code | 场景 |
 | ---: | --- | --- |
-| `400` | `INVALID_REQUEST` | `tokenid` 非法、`toolIds` 为空、工具 ID 空白或重复 |
+| `400` | `INVALID_REQUEST` | 访问 Token 非法、`toolIds` 为空、工具 ID 空白或重复 |
 | `409` | `TOOL_NOT_BOUND` | 任一工具未绑定当前 Agent |
 | `409` | `AUTHORIZATION_NOT_REQUIRED` | 任一工具为 `NO_AUTH_REQUIRED`，不应写入用户授权 |
 | `503` | `POLICY_STORE_UNAVAILABLE` | 策略数据库不可用 |
@@ -194,8 +197,8 @@ Content-Type: application/json
 财经 Agent：
 
 - 调用 MCP 网关前可先调用预检接口。
-- 收到 `403` 时，将 `tokenid + tools` 透传给业务后端触发授权页面。
-- 收到 `200` 时，可以继续调用 MCP 网关，但 MCP 网关仍会再次做最终鉴权。
+- 收到 `200` 且 `tools` 非空时，将 `tokenid + tools` 透传给业务后端触发授权页面。
+- 收到 `200` 且 `tools` 为空时，可以继续调用 MCP 网关，但 MCP 网关仍会再次做最终鉴权。
 - 收到 `400/409/503/5xx` 时，不得继续调用 MCP 工具。
 
 业务后端：

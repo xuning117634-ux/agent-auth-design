@@ -411,9 +411,11 @@ X-Trace-Id: trace-20260609-004
 
 ```http
 POST /internal/conversation-authorizations/batch
-tokenid: agent-a:user-42:conversation-99
+X-AGW-ACCESS-TOKEN: agent-a:user-42:conversation-99
 Content-Type: application/json
 ```
+
+兼容规则：优先读取 `X-AGW-ACCESS-TOKEN`；如果缺失或为空，再读取旧 Header `tokenid`。
 
 请求示例：
 

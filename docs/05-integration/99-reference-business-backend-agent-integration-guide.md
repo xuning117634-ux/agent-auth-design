@@ -4,7 +4,7 @@
 > 适用对象：业务后端、业务 Agent、联调负责人
 > 最后更新：2026-06-11
 > 阅读顺序：5-99
-> 文档职责：保留业务后端与业务 Agent 接入的完整参考说明。新业务优先阅读 [开发人员详细接入文档](02-developer-integration-api-guide.md)，策略中心接口字段以 [策略中心对外接口参考](../02-policy-center/08-external-api-reference.md) 为准。
+> 文档职责：保留业务后端与业务 Agent 接入的早期完整参考说明。新业务优先阅读 [开发人员详细接入文档](02-developer-integration-api-guide.md)；财经 Agent 定制接入优先阅读 [财经 Agent 授权预检与批量授权接口](03-finance-agent-authorization-apis.md)；策略中心接口字段以 [策略中心对外接口参考](../02-policy-center/08-external-api-reference.md) 为准。
 
 ## 1. 方案总览
 
@@ -69,10 +69,11 @@ Agent 网关 -> 业务后端：转发授权请求
 业务后端 -> 用户：展示授权页面
 ```
 
-业务后端需要展示一个 1 分钟有效的授权页面，页面文案只表达当前 V1 能力：
+业务后端需要展示一个 1 分钟有效的授权页面。V1 支持“有效期内授权”和“每次调用授权”两类授权含义，页面文案应按工具标签表达清楚：
 
 ```text
-允许本次对话调用该工具
+USER_AUTH_REQUIRED      = 允许在授权有效期内调用该工具
+PER_CALL_AUTH_REQUIRED  = 仅允许下一次重试调用该工具
 ```
 
 接入要求：
@@ -93,7 +94,8 @@ X-Trace-Id: trace-20260611-001
 
 {
   "tokenId": "agent-a:user-42:conversation-99",
-  "toolId": "crm.customer.delete"
+  "toolId": "crm.customer.delete",
+  "expiresInSeconds": 3600
 }
 ```
 
@@ -110,6 +112,9 @@ X-Trace-Id: trace-20260611-001
 处理要求：
 
 - 重复提交同一 `tokenId + toolId` 是幂等的。
+- `expiresInSeconds` 可选，单位秒；缺失时使用策略中心默认 TTL，且不得超过策略中心最大 TTL。
+- `USER_AUTH_REQUIRED` 工具在 TTL 内持续允许同一 `tokenId + toolId`。
+- `PER_CALL_AUTH_REQUIRED` 工具只允许下一次重试，命中后授权记录会被策略中心消费删除。
 - `409 TOOL_NOT_BOUND` 表示工具未绑定该 Agent，不能继续授权。
 - `409 AUTHORIZATION_NOT_REQUIRED` 表示工具无需用户授权，不应写入当前对话授权。
 - `503 POLICY_STORE_UNAVAILABLE` 或 `503 AUTHORIZATION_STORE_UNAVAILABLE` 必须提示系统暂不可用，不得当作授权成功。
@@ -195,7 +200,7 @@ toolId
 
 ```text
 decision = AUTHORIZATION_REQUIRED
-reason = USER_AUTHORIZATION_REQUIRED
+reason = USER_AUTHORIZATION_REQUIRED 或 PER_CALL_AUTHORIZATION_REQUIRED
 ```
 
 才应该触发人在回路授权页面。其他拒绝原因都必须终止调用。
@@ -263,12 +268,12 @@ X-Trace-Id: trace-20260611-004
 
 ## 6. 未授权人在回路路径
 
-目标工具绑定为 `USER_AUTH_REQUIRED` 且当前对话未授权时，调用路径如下：
+目标工具绑定为 `USER_AUTH_REQUIRED` 且当前对话未授权，或工具绑定为 `PER_CALL_AUTH_REQUIRED` 且缺少一次性授权时，调用路径如下：
 
 ```text
 1. Agent 携带 tokenId 调用 MCP 网关。
 2. MCP 网关向策略中心提交 tokenId + toolId。
-3. 策略中心返回 AUTHORIZATION_REQUIRED + USER_AUTHORIZATION_REQUIRED。
+3. 策略中心返回 `AUTHORIZATION_REQUIRED + USER_AUTHORIZATION_REQUIRED` 或 `AUTHORIZATION_REQUIRED + PER_CALL_AUTHORIZATION_REQUIRED`。
 4. MCP 网关向 Agent 返回未授权状态与 toolId。
 5. Agent 保存检查点并挂起。
 6. Agent 经 Agent 网关把 tokenId + toolId 授权请求传给业务后端。
@@ -328,6 +333,7 @@ X-Trace-Id: trace-20260611-004
 
 - `NO_AUTH_REQUIRED` 工具无需弹授权页面即可调用成功。
 - `USER_AUTH_REQUIRED` 工具首次调用触发授权页面。
+- `PER_CALL_AUTH_REQUIRED` 工具每次调用触发授权页面，用户同意后仅放行下一次重试。
 - 用户同意后，Agent 能恢复检查点并完成工具调用。
 - 用户 1 分钟内未同意时，Agent 返回授权未完成。
 - 未绑定工具直接拒绝，不进入授权页面。
