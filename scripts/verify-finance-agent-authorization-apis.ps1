@@ -247,7 +247,6 @@ try {
         -Path "/internal/tool-authorization-prechecks" `
         -ExtraHeaders @{ "X-AGW-ACCESS-TOKEN" = $tokenId } `
         -Body $precheckRequest
-    Assert-Equal "Precheck required tokenid" $precheckRequired.tokenid $tokenId
     Assert-Equal "Precheck required tool count" @($precheckRequired.tools).Count 1
     Assert-Equal "Precheck required serverId" $precheckRequired.tools[0].serverId $ServerId
     Assert-Equal "Precheck required toolId" $precheckRequired.tools[0].toolId $ToolId
@@ -267,7 +266,6 @@ try {
             toolIds = @($ToolId)
         }
     Assert-Equal "Batch authorization status" $batchAuthorization.status "AUTHORIZED"
-    Assert-Equal "Batch authorization tokenId" $batchAuthorization.tokenId $tokenId
     Assert-Equal "Batch authorization toolCount" $batchAuthorization.toolCount 1
     Assert-Equal "Batch authorization toolId" $batchAuthorization.toolIds[0] $ToolId
 
@@ -283,7 +281,6 @@ try {
                 }
             )
         }
-    Assert-Equal "Precheck authorized tokenid" $precheckAfterAuthorization.tokenid $tokenId
     Assert-Equal "Precheck authorized tool count" @($precheckAfterAuthorization.tools).Count 0
 
     $duplicateBatch = Invoke-PolicyApi -Method POST `

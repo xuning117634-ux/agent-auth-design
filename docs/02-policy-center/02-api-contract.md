@@ -212,7 +212,6 @@ POST /internal/conversation-authorizations
 ```json
 {
   "status": "AUTHORIZED",
-  "tokenId": "agent-a:user-42:conversation-99",
   "toolId": "tool-b"
 }
 ```
@@ -305,7 +304,6 @@ X-AGW-ACCESS-TOKEN: agent-a:user-42:conversation-99
 ```json
 {
   "status": "AUTHORIZED",
-  "tokenId": "agent-a:user-42:conversation-99",
   "toolCount": 2,
   "toolIds": [
     "tool-b",

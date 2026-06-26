@@ -33,7 +33,6 @@ public class ToolAuthorizationPrecheckController {
                         .map(tool -> new ToolAuthorizationPrecheckTool(tool.serverId(), tool.toolName()))
                         .toList());
         return ResponseEntity.ok(new ToolAuthorizationPrecheckResponse(
-                        result.tokenid(),
                         result.tools().stream()
                                 .map(tool -> new ToolAuthorizationPrecheckItemResponse(
                                         tool.serverId(),

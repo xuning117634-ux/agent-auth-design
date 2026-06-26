@@ -45,7 +45,9 @@ class ConversationAuthorizationControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("AUTHORIZED"))
-                .andExpect(jsonPath("$.tokenId").value("agent-a:user-42:conversation-99"))
+                .andExpect(jsonPath("$['X-AGW-ACCESS-TOKEN']").doesNotExist())
+                .andExpect(jsonPath("$.tokenid").doesNotExist())
+                .andExpect(jsonPath("$.tokenId").doesNotExist())
                 .andExpect(jsonPath("$.toolId").value("tool-x"));
 
         org.assertj.core.api.Assertions.assertThat(store.authorizedTtl).isEqualTo(Duration.ofHours(1));
@@ -67,7 +69,9 @@ class ConversationAuthorizationControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("AUTHORIZED"))
-                .andExpect(jsonPath("$.tokenId").value("agent-a:user-42:conversation-99"))
+                .andExpect(jsonPath("$['X-AGW-ACCESS-TOKEN']").doesNotExist())
+                .andExpect(jsonPath("$.tokenid").doesNotExist())
+                .andExpect(jsonPath("$.tokenId").doesNotExist())
                 .andExpect(jsonPath("$.toolCount").value(2))
                 .andExpect(jsonPath("$.toolIds[0]").value("tool-x"))
                 .andExpect(jsonPath("$.toolIds[1]").value("tool-y"));
@@ -88,7 +92,9 @@ class ConversationAuthorizationControllerTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tokenId").value("agent-a:user-42:conversation-99"));
+                .andExpect(jsonPath("$['X-AGW-ACCESS-TOKEN']").doesNotExist())
+                .andExpect(jsonPath("$.tokenid").doesNotExist())
+                .andExpect(jsonPath("$.tokenId").doesNotExist());
     }
 
     @Test
@@ -105,7 +111,9 @@ class ConversationAuthorizationControllerTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tokenId").value("agent-new:user-42:conversation-99"));
+                .andExpect(jsonPath("$['X-AGW-ACCESS-TOKEN']").doesNotExist())
+                .andExpect(jsonPath("$.tokenid").doesNotExist())
+                .andExpect(jsonPath("$.tokenId").doesNotExist());
     }
 
     @Test

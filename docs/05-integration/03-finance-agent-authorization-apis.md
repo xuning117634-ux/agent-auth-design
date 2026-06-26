@@ -25,7 +25,7 @@ X-Trace-Id: trace-20260615-001
 
 - `X-AGW-ACCESS-TOKEN` 必传，值为策略中心需要的完整 `tokenId`，格式仍为 `agentId:userId:conversationId`。
 - 兼容旧调用方：如果 `X-AGW-ACCESS-TOKEN` 缺失或为空，策略中心会 fallback 读取旧 Header `tokenid`。
-- 预检响应字段仍保留为 `tokenid`，这是为了兼容既有调用方；新请求头仍统一使用 `X-AGW-ACCESS-TOKEN`。
+- `X-AGW-ACCESS-TOKEN` 只作为请求 Header 使用，策略中心响应体不回显访问 Token，也不返回旧字段 `tokenid` 或 `tokenId`。
 - `X-Trace-Id` 非必传；传了会透传，不传由策略中心生成。
 - V1 暂不做接口认证，生产接入前需要通过内网、网关或后续认证机制限制调用方。
 - Cookie、业务 Token、密钥不得传给策略中心。
@@ -101,7 +101,6 @@ HTTP/1.1 200 OK
 
 ```json
 {
-  "tokenid": "agent-a:user-42:conversation-99",
   "tools": [
     {
       "serverId": "finance-server",
@@ -122,7 +121,6 @@ HTTP/1.1 200 OK
 
 ```json
 {
-  "tokenid": "agent-a:user-42:conversation-99",
   "tools": []
 }
 ```
@@ -162,7 +160,6 @@ Content-Type: application/json
 ```json
 {
   "status": "AUTHORIZED",
-  "tokenId": "agent-a:user-42:conversation-99",
   "toolCount": 2,
   "toolIds": [
     "finance.quote.query",
@@ -200,7 +197,7 @@ Content-Type: application/json
 财经 Agent：
 
 - 调用 MCP 网关前可先调用预检接口。
-- 收到 `200` 且 `tools` 非空时，将 `tokenid + tools` 透传给业务后端触发授权页面。
+- 收到 `200` 且 `tools` 非空时，将请求 Header 中的 `X-AGW-ACCESS-TOKEN` 与响应中的 `tools` 一起传给业务后端触发授权页面。
 - 收到 `200` 且 `tools` 为空时，可以继续调用 MCP 网关，但 MCP 网关仍会再次做最终鉴权。
 - 收到 `400/409/503/5xx` 时，不得继续调用 MCP 工具。
 

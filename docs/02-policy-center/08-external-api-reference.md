@@ -368,7 +368,6 @@ X-Trace-Id: trace-20260609-004
 ```json
 {
   "status": "AUTHORIZED",
-  "tokenId": "agent-a:user-42:conversation-99",
   "toolId": "crm.customer.delete"
 }
 ```
@@ -434,7 +433,6 @@ Content-Type: application/json
 ```json
 {
   "status": "AUTHORIZED",
-  "tokenId": "agent-a:user-42:conversation-99",
   "toolCount": 2,
   "toolIds": [
     "crm.customer.delete",
