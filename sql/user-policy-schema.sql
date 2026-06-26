@@ -1,8 +1,3 @@
-CREATE DATABASE IF NOT EXISTS policy_center
-    DEFAULT CHARACTER SET utf8mb4
-    COLLATE utf8mb4_general_ci;
-
-USE policy_center;
 
 -- Incremental schema for docs/02-policy-center/07-user-policy-design.md.
 -- Existing environments that already have agent_tool_policy only need this file.

@@ -1,9 +1,3 @@
-CREATE DATABASE IF NOT EXISTS policy_center
-    DEFAULT CHARACTER SET utf8mb4
-    COLLATE utf8mb4_general_ci;
-
-USE policy_center;
-
 CREATE TABLE IF NOT EXISTS agent_skill_user_policy (
     id BIGINT NOT NULL AUTO_INCREMENT,
     agent_id VARCHAR(128) NOT NULL,
