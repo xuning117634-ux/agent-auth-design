@@ -147,6 +147,39 @@ class ConversationAuthorizationServiceTest {
     }
 
     @Test
+    void rejectsBatchAuthorizationWithTooManyToolIds() {
+        ConversationAuthorizationService service = new ConversationAuthorizationService(
+                FakePolicyRepository.withPolicy(AuthMode.USER_AUTH_REQUIRED),
+                new FakeAuthorizationStore(false),
+                Duration.ofDays(7));
+        List<String> toolIds = java.util.stream.IntStream.rangeClosed(1, 101)
+                .mapToObj(index -> "tool-" + index)
+                .toList();
+
+        Throwable thrown = catchThrowable(() -> service.authorizeBatch(
+                "agent-a:user-42:conversation-99",
+                toolIds));
+
+        assertThat(thrown).isInstanceOf(ApiException.class);
+        assertThat(((ApiException) thrown).code()).isEqualTo(ErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    void rejectsBatchAuthorizationWithTooLongToolId() {
+        ConversationAuthorizationService service = new ConversationAuthorizationService(
+                FakePolicyRepository.withPolicy(AuthMode.USER_AUTH_REQUIRED),
+                new FakeAuthorizationStore(false),
+                Duration.ofDays(7));
+
+        Throwable thrown = catchThrowable(() -> service.authorizeBatch(
+                "agent-a:user-42:conversation-99",
+                List.of("t".repeat(256))));
+
+        assertThat(thrown).isInstanceOf(ApiException.class);
+        assertThat(((ApiException) thrown).code()).isEqualTo(ErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
     void rejectsAuthorizationForNoAuthRequiredTool() {
         FakePolicyRepository policies = FakePolicyRepository.withPolicy(AuthMode.NO_AUTH_REQUIRED);
         ConversationAuthorizationService service =

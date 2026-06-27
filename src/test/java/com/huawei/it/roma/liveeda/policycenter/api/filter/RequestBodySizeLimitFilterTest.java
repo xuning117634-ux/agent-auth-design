@@ -21,7 +21,7 @@ class RequestBodySizeLimitFilterTest {
         MockMvc mockMvc = standaloneSetup(new ProbeController())
                 .addFilters(
                         new TraceIdFilter(),
-                        new RequestBodySizeLimitFilter(new ObjectMapper(), 32))
+                        new RequestBodySizeLimitFilter(new ObjectMapper(), 32, 1024))
                 .build();
 
         mockMvc.perform(post("/internal/tool-authorization-prechecks")
@@ -42,9 +42,35 @@ class RequestBodySizeLimitFilterTest {
     }
 
     @Test
+    void rejectsOversizedBatchAuthorizationBodyBeforeController() throws Exception {
+        MockMvc mockMvc = standaloneSetup(new ProbeController())
+                .addFilters(
+                        new TraceIdFilter(),
+                        new RequestBodySizeLimitFilter(new ObjectMapper(), 1024, 32))
+                .build();
+
+        mockMvc.perform(post("/internal/conversation-authorizations/batch")
+                        .header("X-Trace-Id", "trace-batch-large-body")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "toolIds": [
+                                    "tool-x",
+                                    "tool-y"
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isPayloadTooLarge())
+                .andExpect(header().string("X-Trace-Id", "trace-batch-large-body"))
+                .andExpect(jsonPath("$.code").value("PAYLOAD_TOO_LARGE"))
+                .andExpect(jsonPath("$.message").value("request body is too large"))
+                .andExpect(jsonPath("$.traceId").value("trace-batch-large-body"));
+    }
+
+    @Test
     void allowsOtherPathsEvenWhenBodyIsLarge() throws Exception {
         MockMvc mockMvc = standaloneSetup(new ProbeController())
-                .addFilters(new RequestBodySizeLimitFilter(new ObjectMapper(), 1))
+                .addFilters(new RequestBodySizeLimitFilter(new ObjectMapper(), 1, 1))
                 .build();
 
         mockMvc.perform(post("/other")
@@ -57,7 +83,7 @@ class RequestBodySizeLimitFilterTest {
     @Test
     void allowsPrecheckWhenBodyIsWithinLimit() throws Exception {
         MockMvc mockMvc = standaloneSetup(new ProbeController())
-                .addFilters(new RequestBodySizeLimitFilter(new ObjectMapper(), 1024))
+                .addFilters(new RequestBodySizeLimitFilter(new ObjectMapper(), 1024, 1024))
                 .build();
 
         mockMvc.perform(post("/internal/tool-authorization-prechecks")
@@ -70,7 +96,11 @@ class RequestBodySizeLimitFilterTest {
     @RestController
     private static final class ProbeController {
 
-        @PostMapping({"/internal/tool-authorization-prechecks", "/other"})
+        @PostMapping({
+                "/internal/tool-authorization-prechecks",
+                "/internal/conversation-authorizations/batch",
+                "/other"
+        })
         String probe() {
             return "{\"status\":\"ok\"}";
         }

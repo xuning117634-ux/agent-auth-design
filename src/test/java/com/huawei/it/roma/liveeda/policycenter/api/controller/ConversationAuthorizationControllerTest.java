@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -129,6 +130,41 @@ class ConversationAuthorizationControllerTest {
                                   ]
                                 }
                                 """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void rejectsBatchConversationAuthorizationWithTooManyToolIds() throws Exception {
+        String toolIds = IntStream.rangeClosed(1, 101)
+                .mapToObj(index -> "\"tool-%d\"".formatted(index))
+                .reduce((left, right) -> left + "," + right)
+                .orElseThrow();
+
+        mockMvc.perform(post("/internal/conversation-authorizations/batch")
+                        .header("tokenid", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "toolIds": [%s]
+                                }
+                                """.formatted(toolIds)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void rejectsBatchConversationAuthorizationWithTooLongToolId() throws Exception {
+        mockMvc.perform(post("/internal/conversation-authorizations/batch")
+                        .header("tokenid", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "toolIds": [
+                                    "%s"
+                                  ]
+                                }
+                                """.formatted("t".repeat(256))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }

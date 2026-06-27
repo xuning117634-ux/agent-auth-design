@@ -314,7 +314,9 @@ X-AGW-ACCESS-TOKEN: agent-a:user-42:conversation-99
 
 规则：
 
-- `toolIds` 必须非空，元素不能空白，且不能重复。
+- `toolIds` 必须非空，单次最多 `100` 个，元素不能空白，且不能重复。
+- 每个 `toolId` 最长 `255` 个字符。
+- 请求体最大 `256KB`；超过限制返回 `413 + PAYLOAD_TOO_LARGE`。
 - `expiresInSeconds` 可选，语义与单工具授权确认一致。
 - 整批先校验再写入；任一工具未绑定、无需授权、tokenId 非法或策略库异常时，整批失败，不写入授权。
 - `USER_AUTH_REQUIRED` 写入普通当前对话授权记录。

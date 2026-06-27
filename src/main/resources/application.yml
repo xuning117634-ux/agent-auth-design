@@ -31,6 +31,7 @@ policy-center:
     scan-count: 500
   request-limit:
     tool-precheck-max-bytes: 262144
+    batch-authorization-max-bytes: 262144
 
 management:
   endpoints:
