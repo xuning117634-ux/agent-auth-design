@@ -26,6 +26,9 @@ import java.util.Optional;
 @Service
 public class ConversationAuthorizationService {
 
+    private static final int MAX_BATCH_TOOL_COUNT = 100;
+    private static final int MAX_TOOL_ID_LENGTH = 255;
+
     private final ToolPolicyRepository policyRepository;
     private final ConversationAuthorizationStore authorizationStore;
     private final Duration authorizationTtl;
@@ -218,11 +221,17 @@ public class ConversationAuthorizationService {
         if (toolIds == null || toolIds.isEmpty()) {
             throw new ApiException(ErrorCode.INVALID_REQUEST, "toolIds must not be empty");
         }
+        if (toolIds.size() > MAX_BATCH_TOOL_COUNT) {
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "toolIds size must not exceed 100");
+        }
 
         LinkedHashSet<String> distinctToolIds = new LinkedHashSet<>();
         for (String toolId : toolIds) {
             if (toolId == null || toolId.isBlank()) {
                 throw new ApiException(ErrorCode.INVALID_REQUEST, "toolId must not be blank");
+            }
+            if (toolId.length() > MAX_TOOL_ID_LENGTH) {
+                throw new ApiException(ErrorCode.INVALID_REQUEST, "toolId length must not exceed 255");
             }
             if (!distinctToolIds.add(toolId)) {
                 throw new ApiException(ErrorCode.INVALID_REQUEST, "toolId must not be duplicated");

@@ -175,8 +175,11 @@ Content-Type: application/json
 规则：
 
 - `toolIds` 必须非空。
+- `toolIds` 单次最多 `100` 个。
 - 每个 `toolId` 必须非空。
+- 每个 `toolId` 最长 `255` 个字符。
 - 同一请求内 `toolId` 不得重复。
+- 请求体最大 `256KB`；超过限制返回 `413 PAYLOAD_TOO_LARGE`。
 - 策略中心先完成整批校验，再写入 Redis。
 - 任一工具未绑定当前 Agent、无需授权、访问 Token 非法或策略库异常时，整批失败，不写入授权记录。
 - `expiresInSeconds` 可选，表示授权记录相对有效期，单位秒；缺失时使用当前对话授权默认配置。

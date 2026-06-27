@@ -29,15 +29,19 @@ import java.util.UUID;
 public class RequestBodySizeLimitFilter extends OncePerRequestFilter {
 
     private static final String PRECHECK_PATH = "/internal/tool-authorization-prechecks";
+    private static final String BATCH_AUTHORIZATION_PATH = "/internal/conversation-authorizations/batch";
 
     private final ObjectMapper objectMapper;
     private final long precheckMaxBytes;
+    private final long batchAuthorizationMaxBytes;
 
     public RequestBodySizeLimitFilter(
             ObjectMapper objectMapper,
-            @Value("${policy-center.request-limit.tool-precheck-max-bytes:262144}") long precheckMaxBytes) {
+            @Value("${policy-center.request-limit.tool-precheck-max-bytes:262144}") long precheckMaxBytes,
+            @Value("${policy-center.request-limit.batch-authorization-max-bytes:262144}") long batchAuthorizationMaxBytes) {
         this.objectMapper = objectMapper;
         this.precheckMaxBytes = precheckMaxBytes;
+        this.batchAuthorizationMaxBytes = batchAuthorizationMaxBytes;
     }
 
     @Override
@@ -61,22 +65,33 @@ public class RequestBodySizeLimitFilter extends OncePerRequestFilter {
     }
 
     private boolean shouldReject(HttpServletRequest request) {
-        return shouldLimit(request)
-                && request.getContentLengthLong() > precheckMaxBytes;
+        return limitFor(request) != null
+                && request.getContentLengthLong() > limitFor(request);
     }
 
     private boolean shouldLimit(HttpServletRequest request) {
-        return "POST".equalsIgnoreCase(request.getMethod())
-                && PRECHECK_PATH.equals(request.getRequestURI());
+        return limitFor(request) != null;
+    }
+
+    private Long limitFor(HttpServletRequest request) {
+        if (!"POST".equalsIgnoreCase(request.getMethod())) {
+            return null;
+        }
+        return switch (request.getRequestURI()) {
+            case PRECHECK_PATH -> precheckMaxBytes;
+            case BATCH_AUTHORIZATION_PATH -> batchAuthorizationMaxBytes;
+            default -> null;
+        };
     }
 
     private byte[] readBodyWithinLimit(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        long maxBytes = limitFor(request);
         ByteArrayOutputStream body = new ByteArrayOutputStream();
         byte[] buffer = new byte[8192];
         int read;
         while ((read = request.getInputStream().read(buffer)) != -1) {
-            if (body.size() + read > precheckMaxBytes) {
-                reject(request, response);
+            if (body.size() + read > maxBytes) {
+                reject(request, response, maxBytes);
                 return null;
             }
             body.write(buffer, 0, read);
@@ -85,12 +100,16 @@ public class RequestBodySizeLimitFilter extends OncePerRequestFilter {
     }
 
     private void reject(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        reject(request, response, limitFor(request));
+    }
+
+    private void reject(HttpServletRequest request, HttpServletResponse response, long maxBytes) throws IOException {
         String traceId = traceId(request);
         log.warn("PAYLOAD_TOO_LARGE traceId={} path={} contentLength={} maxBytes={}",
                 traceId,
                 request.getRequestURI(),
                 request.getContentLengthLong(),
-                precheckMaxBytes);
+                maxBytes);
         response.setStatus(ErrorCode.PAYLOAD_TOO_LARGE.status().value());
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

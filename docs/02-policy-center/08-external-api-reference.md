@@ -443,7 +443,9 @@ Content-Type: application/json
 
 规则：
 
-- `toolIds` 必须非空，元素不能空白，且不能重复。
+- `toolIds` 必须非空，单次最多 `100` 个，元素不能空白，且不能重复。
+- 每个 `toolId` 最长 `255` 个字符。
+- 请求体最大 `256KB`；超过限制返回 `413 + PAYLOAD_TOO_LARGE`。
 - 批量接口与单工具授权确认使用相同的标签和 TTL 规则。
 - 整批先校验再写入；任一工具不满足条件时整批失败。
 - `PER_CALL_AUTH_REQUIRED` 工具写入的是一次性授权记录。
