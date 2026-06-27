@@ -29,6 +29,8 @@ policy-center:
     max-ttl: 30d
   redis:
     scan-count: 500
+  request-limit:
+    tool-precheck-max-bytes: 262144
 
 management:
   endpoints:
