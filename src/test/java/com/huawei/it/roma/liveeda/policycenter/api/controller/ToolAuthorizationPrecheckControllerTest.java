@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -217,6 +218,52 @@ class ToolAuthorizationPrecheckControllerTest {
                                   ]
                                 }
                                 """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void rejectsTooManyTools() throws Exception {
+        MockMvc mockMvc = mockMvc(AuthMode.USER_AUTH_REQUIRED, false);
+        String tools = IntStream.rangeClosed(1, 101)
+                .mapToObj(index -> """
+                        {
+                          "serverId": "finance-server-%d",
+                          "toolName": "quoteQuery"
+                        }
+                        """.formatted(index))
+                .reduce((left, right) -> left + "," + right)
+                .orElseThrow();
+
+        mockMvc.perform(post("/internal/tool-authorization-prechecks")
+                        .header("tokenid", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tools": [%s]
+                                }
+                                """.formatted(tools)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void rejectsTooLongToolFields() throws Exception {
+        MockMvc mockMvc = mockMvc(AuthMode.USER_AUTH_REQUIRED, false);
+
+        mockMvc.perform(post("/internal/tool-authorization-prechecks")
+                        .header("tokenid", "agent-a:user-42:conversation-99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tools": [
+                                    {
+                                      "serverId": "%s",
+                                      "toolName": "%s"
+                                    }
+                                  ]
+                                }
+                                """.formatted("s".repeat(129), "t".repeat(256))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
     }
