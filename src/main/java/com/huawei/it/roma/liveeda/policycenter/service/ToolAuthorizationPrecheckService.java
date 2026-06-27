@@ -22,6 +22,10 @@ import java.util.Map;
 @Service
 public class ToolAuthorizationPrecheckService {
 
+    private static final int MAX_PRECHECK_TOOL_COUNT = 100;
+    private static final int MAX_SERVER_ID_LENGTH = 128;
+    private static final int MAX_TOOL_NAME_LENGTH = 255;
+
     private final AgentPolicyToolCatalogRepository catalogRepository;
     private final AuthorizationDecisionService decisionService;
     private final AuditLogger auditLogger;
@@ -46,6 +50,9 @@ public class ToolAuthorizationPrecheckService {
         TokenId tokenId = parseForRequest(tokenIdRaw);
         if (tools == null || tools.isEmpty()) {
             throw new ApiException(ErrorCode.INVALID_REQUEST, "tools must not be empty");
+        }
+        if (tools.size() > MAX_PRECHECK_TOOL_COUNT) {
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "tools size must not exceed 100");
         }
 
         List<ToolAuthorizationRequiredTool> requiredTools = new ArrayList<>();
@@ -94,6 +101,12 @@ public class ToolAuthorizationPrecheckService {
         if (tool == null || tool.serverId() == null || tool.serverId().isBlank()
                 || tool.toolName() == null || tool.toolName().isBlank()) {
             throw new ApiException(ErrorCode.INVALID_REQUEST, "serverId and toolName must not be blank");
+        }
+        if (tool.serverId().length() > MAX_SERVER_ID_LENGTH) {
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "serverId length must not exceed 128");
+        }
+        if (tool.toolName().length() > MAX_TOOL_NAME_LENGTH) {
+            throw new ApiException(ErrorCode.INVALID_REQUEST, "toolName length must not exceed 255");
         }
     }
 

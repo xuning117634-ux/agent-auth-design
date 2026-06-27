@@ -58,7 +58,10 @@ Content-Type: application/json
 字段规则：
 
 - `tools` 必须非空。
+- `tools` 单次最多 `100` 个；超过限制返回 `400 INVALID_REQUEST`。
 - 每个工具必须提供 `serverId` 和 `toolName`。
+- `serverId` 最长 `128` 个字符。
+- `toolName` 最长 `255` 个字符。
 - 请求字段同时兼容 `serverId/serverid` 和 `toolName/toolname`。
 - 策略中心先从 Header `X-AGW-ACCESS-TOKEN` 解析出 `agentId`，再用 `agentId + serverId + toolName` 查询 `agent_policy_tool`。
 
