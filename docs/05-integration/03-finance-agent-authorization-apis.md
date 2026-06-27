@@ -62,6 +62,7 @@ Content-Type: application/json
 - 每个工具必须提供 `serverId` 和 `toolName`。
 - `serverId` 最长 `128` 个字符。
 - `toolName` 最长 `255` 个字符。
+- 请求体最大 `256KB`；超过限制返回 `413 PAYLOAD_TOO_LARGE`。
 - 请求字段同时兼容 `serverId/serverid` 和 `toolName/toolname`。
 - 策略中心先从 Header `X-AGW-ACCESS-TOKEN` 解析出 `agentId`，再用 `agentId + serverId + toolName` 查询 `agent_policy_tool`。
 
