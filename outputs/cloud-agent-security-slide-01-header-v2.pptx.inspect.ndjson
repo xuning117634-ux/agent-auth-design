@@ -1,0 +1,51 @@
+{"kind":"deck","id":"pr/mnifjv","name":"Deck"}
+{"kind":"layout","layoutId":"f4ec69da-fe72-4334-b5ee-77c15059f09a","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"e3296479-a4a4-45b0-a308-de8d67c36377","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/lasxzr","slide":1,"title":"01 / 背景与趋势","textShapes":19}
+{"kind":"shape","id":"sh/mp0bi9s3","slide":1,"name":"header-accent-bar","bbox":[72,48,5,86]}
+{"kind":"textbox","id":"sh/tgfmlkjm","slide":1,"name":"header-section","text":"01 / 背景与趋势","textPreview":"01 / 背景与趋势","textChars":10,"textLines":1,"bbox":[94,42,260,26]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":1,"name":"headline","text":"大模型的“概率性” × 业务的“100% 确定性”","textPreview":"大模型的“概率性” × 业务的“100% 确定性”","textChars":25,"textLines":1,"bbox":[94,70,900,54]}
+{"kind":"textbox","id":"sh/bm58z25k","slide":1,"name":"subtitle","text":"让智能可用、可控、可审计","textPreview":"让智能可用、可控、可审计","textChars":12,"textLines":1,"bbox":[94,124,560,30]}
+{"kind":"shape","id":"sh/m1cfa9w3","slide":1,"name":"header-topic-pill","bbox":[1012,50,196,38]}
+{"kind":"shape","id":"sh/tsvu9kni","slide":1,"name":"header-topic-dot","bbox":[1030,64,10,10]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":1,"name":"header-topic-text","text":"云侧 Agent 安全","textPreview":"云侧 Agent 安全","textChars":11,"textLines":1,"bbox":[1048,58,138,24]}
+{"kind":"shape","id":"sh/bq1oryts","slide":1,"name":"header-divider","bbox":[72,178,1136,1]}
+{"kind":"shape","id":"sh/m58z25kb","slide":1,"name":"left-panel","bbox":[72,224,540,338]}
+{"kind":"shape","id":"sh/o7qpg3ex","slide":1,"name":"right-panel","bbox":[668,224,540,338]}
+{"kind":"textbox","id":"sh/dsji5sne","slide":1,"name":"left-title","text":"AI 的不确定性","textPreview":"AI 的不确定性","textChars":8,"textLines":1,"bbox":[106,250,320,34]}
+{"kind":"textbox","id":"sh/61032lsz","slide":1,"name":"left-caption","text":"大模型天然存在概率性输出","textPreview":"大模型天然存在概率性输出","textChars":12,"textLines":1,"bbox":[106,286,360,28]}
+{"kind":"textbox","id":"sh/vmtwra5g","slide":1,"name":"right-title","text":"业务的确定性","textPreview":"业务的确定性","textChars":6,"textLines":1,"bbox":[702,250,320,34]}
+{"kind":"textbox","id":"sh/oj2t83it","slide":1,"name":"right-caption","text":"关键业务必须满足安全与合规要求","textPreview":"关键业务必须满足安全与合规要求","textChars":15,"textLines":1,"bbox":[702,286,390,28]}
+{"kind":"shape","id":"sh/d4vmtwra","slide":1,"name":"left-item-1-bg","bbox":[106,332,472,34]}
+{"kind":"shape","id":"sh/6dcbulwv","slide":1,"name":"left-item-1-dot","bbox":[124,350,12,12]}
+{"kind":"textbox","id":"sh/vy90je9c","slide":1,"name":"left-item-1-text","text":"幻觉：可能生成错误或虚构信息","textPreview":"幻觉：可能生成错误或虚构信息","textChars":14,"textLines":1,"bbox":[150,343,412,26]}
+{"kind":"shape","id":"sh/onyd0z61","slide":1,"name":"left-item-2-bg","bbox":[106,375,472,34]}
+{"kind":"shape","id":"sh/d8v6psfi","slide":1,"name":"left-item-2-dot","bbox":[124,393,12,12]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":1,"name":"left-item-2-text","text":"越权：访问未授权资源","textPreview":"越权：访问未授权资源","textChars":10,"textLines":1,"bbox":[150,386,412,26]}
+{"kind":"shape","id":"sh/crmhk3q5","slide":1,"name":"left-item-3-bg","bbox":[106,418,472,34]}
+{"kind":"shape","id":"sh/j6tovaho","slide":1,"name":"left-item-3-dot","bbox":[124,436,12,12]}
+{"kind":"textbox","id":"sh/ulwval87","slide":1,"name":"left-item-3-text","text":"跨域调用：调出权限范围","textPreview":"跨域调用：调出权限范围","textChars":11,"textLines":1,"bbox":[150,429,412,26]}
+{"kind":"shape","id":"sh/1kre1w7m","slide":1,"name":"left-item-4-bg","bbox":[106,461,472,34]}
+{"kind":"shape","id":"sh/c3ylc7u5","slide":1,"name":"left-item-4-dot","bbox":[124,479,12,12]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":1,"name":"left-item-4-text","text":"Shadow Agent：未授权 Agent","textPreview":"Shadow Agent：未授权 Agent","textChars":22,"textLines":1,"bbox":[150,472,412,26]}
+{"kind":"shape","id":"sh/uxc3ylc7","slide":1,"name":"left-item-5-bg","bbox":[106,504,472,34]}
+{"kind":"shape","id":"sh/1w7mp0bi","slide":1,"name":"left-item-5-dot","bbox":[124,522,12,12]}
+{"kind":"textbox","id":"sh/8bat47y1","slide":1,"name":"left-item-5-text","text":"Prompt 注入：恶意指令","textPreview":"Prompt 注入：恶意指令","textChars":14,"textLines":1,"bbox":[150,515,412,26]}
+{"kind":"shape","id":"sh/m58z25kb","slide":1,"name":"right-item-1-bg","bbox":[702,332,472,34]}
+{"kind":"shape","id":"sh/bq1oryts","slide":1,"name":"right-item-1-dot","bbox":[720,350,12,12]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":1,"name":"right-item-1-text","text":"可审计：完整操作日志","textPreview":"可审计：完整操作日志","textChars":10,"textLines":1,"bbox":[746,343,412,26]}
+{"kind":"shape","id":"sh/twra5gbq","slide":1,"name":"right-item-2-bg","bbox":[702,375,472,34]}
+{"kind":"shape","id":"sh/mhk3q5o7","slide":1,"name":"right-item-2-dot","bbox":[720,393,12,12]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":1,"name":"right-item-2-text","text":"权责清晰：责任主体明确","textPreview":"权责清晰：责任主体明确","textChars":11,"textLines":1,"bbox":[746,386,412,26]}
+{"kind":"shape","id":"sh/4nap4r65","slide":1,"name":"right-item-3-bg","bbox":[702,418,472,34]}
+{"kind":"shape","id":"sh/t83itgfm","slide":1,"name":"right-item-3-dot","bbox":[720,436,12,12]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":1,"name":"right-item-3-text","text":"0 数据外泄：数据安全","textPreview":"0 数据外泄：数据安全","textChars":11,"textLines":1,"bbox":[746,429,412,26]}
+{"kind":"shape","id":"sh/bat47y1k","slide":1,"name":"right-item-4-bg","bbox":[702,461,472,34]}
+{"kind":"shape","id":"sh/f6dcbulw","slide":1,"name":"right-item-4-dot","bbox":[720,479,12,12]}
+{"kind":"textbox","id":"sh/mlkjm1cf","slide":1,"name":"right-item-4-text","text":"合规可信：满足法规要求","textPreview":"合规可信：满足法规要求","textChars":11,"textLines":1,"bbox":[746,472,412,26]}
+{"kind":"shape","id":"sh/xc3ylc7u","slide":1,"name":"right-item-5-bg","bbox":[702,504,472,34]}
+{"kind":"shape","id":"sh/4r65wjud","slide":1,"name":"right-item-5-dot","bbox":[720,522,12,12]}
+{"kind":"textbox","id":"sh/fepkzupw","slide":1,"name":"right-item-5-text","text":"可控：风险可内控","textPreview":"可控：风险可内控","textChars":8,"textLines":1,"bbox":[746,515,412,26]}
+{"kind":"shape","id":"sh/mtwra5gb","slide":1,"name":"bottom-conclusion","bbox":[72,604,1136,58]}
+{"kind":"textbox","id":"sh/xkf6dcbu","slide":1,"name":"bottom-conclusion-text","text":"没有身份与授权保护的确定边界，AI 永远绕不开安全风险。","textPreview":"没有身份与授权保护的确定边界，AI 永远绕不开安全风险。","textChars":28,"textLines":1,"bbox":[108,619,1000,32]}
+{"kind":"notes","id":"nt/lasxzr","slide":1,"text":""}

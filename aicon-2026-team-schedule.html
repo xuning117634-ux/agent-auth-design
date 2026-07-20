@@ -1,0 +1,2091 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>AICon 2026 上海站 · 三人协作日程</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #687481;
+      --line: #dce2e7;
+      --soft-line: #edf0f2;
+      --paper: #ffffff;
+      --canvas: #f5f6f7;
+      --blue: #126fd1;
+      --blue-dark: #0b4f9b;
+      --warning: #c56914;
+      --danger: #b4233d;
+      --shadow: 0 18px 60px rgba(23, 33, 43, .14);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--canvas);
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(18, 111, 209, .04) 1px, transparent 1px) 0 0 / 24px 24px,
+        var(--canvas);
+      font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.5;
+    }
+
+    button, select, input { font: inherit; }
+    button { color: inherit; }
+    a { color: inherit; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      color: #fff;
+      background: rgba(11, 79, 155, .97);
+      border-bottom: 1px solid rgba(255, 255, 255, .18);
+      backdrop-filter: blur(18px);
+    }
+
+    .topbar-inner {
+      max-width: 1680px;
+      margin: 0 auto;
+      padding: 14px 22px;
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .brand {
+      min-width: 0;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .brand strong {
+      font-size: 20px;
+      letter-spacing: .01em;
+      white-space: nowrap;
+    }
+
+    .brand span {
+      color: rgba(255, 255, 255, .72);
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .button {
+      min-height: 38px;
+      padding: 8px 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 700;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease;
+    }
+
+    .button:hover { transform: translateY(-1px); }
+    .button.primary { color: var(--blue-dark); background: #fff; }
+    .button.ghost { color: #fff; background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .25); }
+    .button.subtle { background: #fff; border-color: var(--line); }
+
+    .workspace {
+      width: min(1680px, calc(100% - 36px));
+      margin: 22px auto 60px;
+    }
+
+    .control-deck {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 6px 26px rgba(23, 33, 43, .06);
+      overflow: hidden;
+    }
+
+    .relay-row {
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: minmax(230px, 1fr) minmax(360px, auto) minmax(240px, .8fr);
+      gap: 22px;
+      align-items: center;
+      border-bottom: 1px solid var(--soft-line);
+    }
+
+    .relay-title strong, .filters-title strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .relay-title span, .filters-title span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .editor-switcher {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .editor-button {
+      padding: 7px 12px 7px 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      transition: border-color .16s ease, background .16s ease, transform .16s ease;
+    }
+
+    .editor-button:hover { transform: translateY(-1px); }
+    .editor-button.active { border-color: var(--member-color); background: color-mix(in srgb, var(--member-color) 10%, white); }
+
+    .member-dot {
+      width: 10px;
+      height: 10px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--member-color);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--member-color) 14%, transparent);
+    }
+
+    .relay-status {
+      padding-left: 18px;
+      border-left: 1px solid var(--soft-line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .relay-status strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .filters-row {
+      padding: 14px 20px;
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 22px;
+      align-items: center;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(135px, 1fr)) minmax(180px, 1.3fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .field, .search-field {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      outline: none;
+    }
+
+    .field:focus, .search-field:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(18, 111, 209, .12); }
+
+    .check-filter {
+      min-height: 38px;
+      padding: 7px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .summary-strip {
+      margin: 16px 0 12px;
+      padding: 0 4px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .summary-copy {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .summary-copy strong { color: var(--ink); }
+
+    .conflict-summary {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .conflict-pill {
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .conflict-pill.danger {
+      color: var(--danger);
+      border-color: rgba(180, 35, 61, .32);
+      background: #fff5f6;
+    }
+
+    .day-tabs {
+      margin: 0 0 12px;
+      display: flex;
+      gap: 7px;
+    }
+
+    .day-tab {
+      padding: 9px 14px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .day-tab.active {
+      color: #fff;
+      border-color: var(--blue);
+      background: var(--blue);
+    }
+
+    .schedule-shell {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 8px 36px rgba(23, 33, 43, .07);
+      overflow: hidden;
+    }
+
+    .matrix-scroll { overflow-x: auto; }
+
+    .schedule-table {
+      width: 100%;
+      min-width: 1140px;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+    }
+
+    .schedule-table th,
+    .schedule-table td {
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    .schedule-table tr:last-child td { border-bottom: 0; }
+    .schedule-table th:last-child,
+    .schedule-table td:last-child { border-right: 0; }
+
+    .schedule-table thead th {
+      padding: 12px 10px;
+      color: #fff;
+      background: var(--blue);
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .schedule-table .time-head,
+    .schedule-table .time-cell {
+      width: 104px;
+      text-align: center;
+    }
+
+    .schedule-table .time-head { background: var(--blue-dark); }
+
+    .schedule-table .topic-header-row th {
+      padding: 14px 10px 10px;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .schedule-table .topic-header-row small {
+      display: block;
+      margin-top: 4px;
+      color: rgba(255, 255, 255, .65);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .schedule-table .room-header-row th {
+      padding: 8px 10px;
+      background: #0d65bd;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .period-table + .period-table {
+      margin-top: 28px;
+      border-top: 8px solid var(--canvas);
+    }
+
+    .schedule-table .time-cell {
+      padding: 18px 8px;
+      color: var(--muted);
+      background: #fafbfc;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .schedule-cell {
+      min-height: 145px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    .schedule-cell.empty {
+      background:
+        linear-gradient(135deg, transparent 48%, #edf0f2 49%, #edf0f2 51%, transparent 52%);
+      background-size: 12px 12px;
+    }
+
+    .session-card {
+      position: relative;
+      height: 100%;
+      min-height: 128px;
+      padding: 11px 11px 9px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: #fff;
+      cursor: pointer;
+      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+
+    .session-card:hover {
+      z-index: 2;
+      transform: translateY(-2px);
+      border-color: #bfcee0;
+      box-shadow: 0 10px 28px rgba(23, 33, 43, .11);
+    }
+
+    .session-card.assigned {
+      background: linear-gradient(180deg, #fff, #fbfcfd);
+      border-color: var(--assignment-color, #bfcee0);
+      box-shadow: inset 4px 0 0 var(--assignment-color, #bfcee0);
+    }
+
+    .session-card.conflict {
+      border-color: rgba(180, 35, 61, .55);
+      box-shadow: inset 4px 0 0 var(--danger);
+    }
+
+    .session-title {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.48;
+      color: #075fbd;
+    }
+
+    .speaker-line {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .meta-row {
+      margin-top: 9px;
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .ppt-badge, .conflict-badge {
+      padding: 3px 6px;
+      border-radius: 5px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .ppt-badge.available { color: #096b48; background: #eaf8f1; }
+    .ppt-badge.forbidden { color: #a1293d; background: #fff0f2; }
+    .ppt-badge.unmarked { color: #7c5d16; background: #fff7df; }
+    .ppt-badge.available, .ppt-badge.unmarked { display: none; }
+    .conflict-badge { color: var(--danger); background: #fff0f2; }
+
+    .detail-button {
+      margin-left: auto;
+      padding: 3px 7px;
+      color: var(--blue-dark);
+      border: 1px solid #c7d8ea;
+      border-radius: 5px;
+      background: #f4f9ff;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .assignment-row {
+      margin-top: 10px;
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .assignment-chip {
+      padding: 3px 7px 3px 5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      cursor: default;
+    }
+
+    .assignment-chip.editable { cursor: pointer; }
+    .assignment-chip.editable:hover { border-color: var(--member-color); }
+    .assignment-chip.selected {
+      color: #fff;
+      border-color: var(--member-color);
+      background: var(--member-color);
+    }
+
+    .assignment-chip .member-dot {
+      width: 7px;
+      height: 7px;
+      box-shadow: none;
+    }
+
+    .assignment-chip.selected .member-dot { background: #fff; }
+
+    .mobile-schedule { display: none; }
+
+    .static-fallback {
+      padding: 18px;
+      background: #fff;
+    }
+
+    .static-fallback[hidden] { display: none; }
+
+    .fallback-notice {
+      margin-bottom: 22px;
+      padding: 14px 16px;
+      display: grid;
+      gap: 3px;
+      color: #6d5417;
+      background: #fff8df;
+      border: 1px solid #ead698;
+      border-radius: 10px;
+    }
+
+    .fallback-notice span {
+      font-size: 13px;
+    }
+
+    .fallback-day + .fallback-day {
+      margin-top: 32px;
+      padding-top: 26px;
+      border-top: 3px solid var(--blue);
+    }
+
+    .fallback-day:first-of-type .fallback-time:nth-of-type(-n+5) {
+      display: none;
+    }
+
+    .fallback-day > h2 {
+      margin: 0 0 18px;
+      color: var(--blue-dark);
+    }
+
+    .fallback-time {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      border-top: 1px solid var(--line);
+    }
+
+    .fallback-time > h3 {
+      margin: 0;
+      padding: 16px 10px 16px 0;
+      color: var(--blue-dark);
+      font-size: 14px;
+    }
+
+    .fallback-session-list {
+      padding: 10px 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 8px;
+    }
+
+    .fallback-session {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+    }
+
+    .fallback-room, .fallback-topic {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .fallback-topic {
+      margin-top: 3px;
+      color: var(--blue-dark);
+    }
+
+    .fallback-session h4 {
+      margin: 7px 0 5px;
+      color: #075fbd;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .fallback-session p {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .mobile-time-group {
+      padding: 0 14px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mobile-time-group:last-child { border-bottom: 0; }
+
+    .mobile-time {
+      position: sticky;
+      top: 67px;
+      z-index: 4;
+      margin: 0 -14px 10px;
+      padding: 10px 14px;
+      color: var(--blue-dark);
+      background: rgba(245, 246, 247, .96);
+      border-bottom: 1px solid var(--line);
+      font-weight: 900;
+      backdrop-filter: blur(12px);
+    }
+
+    .mobile-room {
+      margin: 8px 0 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .mobile-track {
+      margin: 12px 0 5px;
+      padding-left: 9px;
+      color: var(--blue-dark);
+      border-left: 3px solid var(--blue);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .mobile-schedule .session-card {
+      min-height: 0;
+      margin-bottom: 8px;
+      border-color: var(--line);
+    }
+
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: rgba(14, 24, 34, .36);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+
+    .detail-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 41;
+      width: min(620px, 92vw);
+      padding: 24px;
+      overflow-y: auto;
+      background: #fff;
+      box-shadow: var(--shadow);
+      transform: translateX(102%);
+      transition: transform .24s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    body.drawer-open .drawer-backdrop { opacity: 1; pointer-events: auto; }
+    body.drawer-open .detail-drawer { transform: translateX(0); }
+
+    .drawer-close {
+      position: sticky;
+      top: 0;
+      float: right;
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+      font-size: 20px;
+    }
+
+    .drawer-kicker {
+      padding-top: 8px;
+      color: var(--blue-dark);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .drawer-title {
+      margin: 10px 48px 8px 0;
+      font-size: clamp(24px, 4vw, 36px);
+      line-height: 1.24;
+    }
+
+    .drawer-meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .drawer-section {
+      margin-top: 26px;
+      padding-top: 20px;
+      border-top: 1px solid var(--soft-line);
+    }
+
+    .drawer-section h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .focus-list, .takeaway-list {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .focus-list li, .takeaway-list li { margin: 7px 0; }
+
+    .speaker-block {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--soft-line);
+    }
+
+    .speaker-block:last-child { border-bottom: 0; }
+    .speaker-block strong { display: block; }
+    .speaker-block span { color: var(--muted); font-size: 13px; }
+
+    .drawer-actions {
+      margin-top: 26px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .notice {
+      margin-top: 14px;
+      padding: 10px 12px;
+      color: #6d5417;
+      background: #fff8df;
+      border: 1px solid #ead698;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+
+    .empty-state {
+      padding: 54px 22px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 60;
+      padding: 10px 16px;
+      color: #fff;
+      background: #17212b;
+      border-radius: 9px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translate(-50%, 12px);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1100px) {
+      .relay-row { grid-template-columns: 1fr; gap: 14px; }
+      .editor-switcher { justify-content: flex-start; }
+      .relay-status { padding: 0; border-left: 0; }
+      .filters-row { grid-template-columns: 1fr; gap: 10px; }
+      .filters { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      .topbar-inner {
+        padding: 11px 14px;
+        grid-template-columns: 1fr auto;
+      }
+
+      .brand { display: block; }
+      .brand strong { display: block; font-size: 16px; }
+      .brand span { display: none; }
+      .top-actions .ghost { display: none; }
+      .button { min-height: 36px; padding: 7px 10px; font-size: 12px; }
+
+      .workspace {
+        width: min(100% - 20px, 720px);
+        margin-top: 12px;
+      }
+
+      .relay-row, .filters-row { padding: 14px; }
+      .editor-switcher { display: grid; grid-template-columns: repeat(3, 1fr); }
+      .editor-button { justify-content: center; padding-right: 7px; font-size: 12px; }
+      .relay-title span { max-width: 46ch; }
+
+      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .search-field { grid-column: 1 / -1; }
+      .check-filter { justify-content: center; }
+
+      .summary-strip { align-items: flex-start; }
+      .summary-copy { display: block; }
+      .summary-copy span { display: block; margin-bottom: 3px; }
+      .day-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+
+      .matrix-scroll { display: none; }
+      .mobile-schedule { display: block; }
+      .schedule-shell { overflow: visible; }
+      .static-fallback { padding: 12px; }
+      .fallback-time { display: block; }
+      .fallback-time > h3 {
+        position: sticky;
+        top: 59px;
+        z-index: 2;
+        padding: 10px 0;
+        background: rgba(255, 255, 255, .96);
+      }
+      .fallback-session-list { grid-template-columns: 1fr; }
+
+      .detail-drawer { width: 100%; padding: 18px; }
+      .drawer-title { font-size: 25px; }
+    }
+
+    @media print {
+      .topbar, .control-deck, .drawer-backdrop, .detail-drawer, .toast { display: none !important; }
+      .workspace { width: 100%; margin: 0; }
+      .schedule-shell { box-shadow: none; border: 0; }
+      .schedule-table thead th { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <strong>AICon 2026 · 三人协作日程</strong>
+        <span>6 月 26–27 日 · 上海虹桥祥源希尔顿酒店</span>
+      </div>
+      <div class="top-actions">
+        <a class="button ghost" href="https://aicon.infoq.cn/2026/shanghai/schedule" target="_blank" rel="noreferrer">官网日程</a>
+        <button class="button primary" id="export-html" type="button">导出共享版 HTML</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="control-deck" aria-label="协作与筛选">
+      <div class="relay-row">
+        <div class="relay-title">
+          <strong>当前编辑人</strong>
+          <span>接力编辑模式：先选择你自己，只修改自己的分工；前面成员的安排会保留并锁定。</span>
+        </div>
+        <div class="editor-switcher" id="editor-switcher" aria-label="选择当前编辑人"></div>
+        <div class="relay-status" id="relay-status">
+          <strong>尚未选择编辑人</strong>
+          选择身份后即可在议题卡上增删自己的分工。
+        </div>
+      </div>
+
+      <div class="filters-row">
+        <div class="filters-title">
+          <strong>查看与筛选</strong>
+          <span>筛选只影响显示，不会修改任何分工。</span>
+        </div>
+        <div class="filters">
+          <select class="field" id="filter-day" aria-label="日期"></select>
+          <select class="field" id="filter-member" aria-label="成员"></select>
+          <select class="field" id="filter-topic" aria-label="专题"></select>
+          <select class="field" id="filter-ppt" aria-label="PPT 状态"></select>
+          <input class="search-field" id="filter-search" type="search" placeholder="搜索议题、讲师或会场">
+          <label class="check-filter">
+            <input id="filter-unassigned" type="checkbox">
+            只看未分配
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <div class="summary-strip">
+      <div class="summary-copy" id="schedule-summary"></div>
+      <div class="conflict-summary" id="conflict-summary" aria-live="polite"></div>
+    </div>
+
+    <nav class="day-tabs" id="day-tabs" aria-label="日期切换"></nav>
+
+    <section class="schedule-shell" aria-label="大会日程">
+      
+    <section class="static-fallback" id="static-fallback">
+      <div class="fallback-notice">
+        <strong>当前打开器未启用互动功能</strong>
+        <span>完整日程仍可直接查看。需要分工、保存和导出时，请把本文件下载到手机或电脑后，用 Chrome、Edge 或 Safari 打开。</span>
+      </div>
+      
+        <section class="fallback-day">
+          <h2>第一天 · 2026 年 6 月 26 日</h2>
+          
+            <div class="fallback-time">
+              <h3>09:00-09:15</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7133">
+                    <div class="fallback-room">主会场</div>
+                    <div class="fallback-topic">Keynote 主题演讲</div>
+                    <h4>拆墙、减层、小型化：AI 时代的工程化组织进化</h4>
+                    <p>赵钰莹 极客邦科技 /总编辑</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>09:15-09:55</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7125">
+                    <div class="fallback-room">主会场</div>
+                    <div class="fallback-topic">Keynote 主题演讲</div>
+                    <h4>迈向交互新范式——MOSS 多模态模型的创新与实践</h4>
+                    <p>邱锡鹏 复旦大学 /教授、上海创智学院院长助理 &amp; 模思智能创始人</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>09:55-10:35</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7134">
+                    <div class="fallback-room">主会场</div>
+                    <div class="fallback-topic">Keynote 主题演讲</div>
+                    <h4>从 Token 数量到 Token 密度：万亿参数规模下的高效智能体智能</h4>
+                    <p>周俊 蚂蚁集团 /副总裁</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>10:35-11:15</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7136">
+                    <div class="fallback-room">主会场</div>
+                    <div class="fallback-topic">Keynote 主题演讲</div>
+                    <h4>迈向 Token 服务新范式——从评测到调度的全链路优化供给</h4>
+                    <p>冷静文 上海交通大学 /计算机学院副院长、教授&amp;博士生导师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>11:15-11:55</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7140">
+                    <div class="fallback-room">主会场</div>
+                    <div class="fallback-topic">Keynote 主题演讲</div>
+                    <h4>2026下半年中美AI创业机会：从技术红利到商业验证</h4>
+                    <p>肇极 观正资本 /创始合伙人</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>14:00-14:40</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7039">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 数据、记忆与运行时基础设施</div>
+                    <h4>Agent 的下一站：基于长期记忆系统 EverOS 的自我演进</h4>
+                    <p>邓亚峰 盛大集团 /副总裁 &amp; EverMind CEO</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7135">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">企业级 AI 研发：从提效到转型</div>
+                    <h4>从辅助到自主：Coding Agent重塑华为软件研发效率</h4>
+                    <p>张琦 华为 /Coding Agent 技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7063">
+                    <div class="fallback-room">源禧厅 1+2+3</div>
+                    <div class="fallback-topic">世界模型与多模态智能突破</div>
+                    <h4>走向统一智能：多模态生成与理解的架构演进</h4>
+                    <p>俞刚 阶跃星辰 /副总裁</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7053">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 原生数据工程</div>
+                    <h4>数据不止于洞察，构建企业 Agent 的自动化行动架构</h4>
+                    <p>刘少伟 阿里云智能集团 /高级技术专家</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7118">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">金融领域大模型落地实践</div>
+                    <h4>从&quot;事后救火&quot;到&quot;事前先知&quot;：Agentic AI重塑风控心智，驱动金融反欺诈自驱式生长</h4>
+                    <p>马敬涛 小盾未来 /AI 产品解决方案专家</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7144">
+                    <div class="fallback-room">源福厅 1+2+3</div>
+                    <div class="fallback-topic">AI 时代的工作流重构：从 Coding 到 Anything</div>
+                    <h4>从辅助编程到自主交付：Qoder Desktop 的多 Agent 协作与 Harness 实践</h4>
+                    <p>左志鹏 阿里巴巴 /高级技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>14:55-15:35</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7038">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 数据、记忆与运行时基础设施</div>
+                    <h4>面向智能体与人类用户的AI记忆系统：架构设计与核心场景实践</h4>
+                    <p>范承工 MemVerge /联合创始人&amp;CEO</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7067">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">企业级 AI 研发：从提效到转型</div>
+                    <h4>小红书 vibe coding 平台（Muse）之高可用人机共创 Agentic 系统架构实践</h4>
+                    <p>郑鑫祺 小红书 /AI Coding 总架构师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7052">
+                    <div class="fallback-room">源禧厅 1+2+3</div>
+                    <div class="fallback-topic">世界模型与多模态智能突破</div>
+                    <h4>腾讯混元世界模型的研发布局与思考</h4>
+                    <p>王腾飞 腾讯 / 3D 世界模型负责人</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7065">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 原生数据工程</div>
+                    <h4>Lance 实践：从多模态数据湖到 Agent 记忆湖的演进之路</h4>
+                    <p>马进 抖音集团 /数据引擎开发工程师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7127">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">金融领域大模型落地实践</div>
+                    <h4>AI 神盾平台在金融生态中的智能风控实践</h4>
+                    <p>黄佳豪 平安人寿 /金管家基础平台研发组副经理</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7145">
+                    <div class="fallback-room">源福厅 1+2+3</div>
+                    <div class="fallback-topic">AI 时代的工作流重构：从 Coding 到 Anything</div>
+                    <h4>重塑本地生产力：QoderWork 桌面 Agent 的设计密码与效能突破</h4>
+                    <p>赵明 阿里巴巴 /高级技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>16:00-16:40</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7137">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 数据、记忆与运行时基础设施</div>
+                    <h4>从逻辑到基座：构建高可靠生产级 Agent 的数据、记忆与运行时基础设施</h4>
+                    <p>董仕超 Google Cloud /解决方案架构师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7062">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">企业级 AI 研发：从提效到转型</div>
+                    <h4>从 Vibe Coding 到需求托管交付 Agent，菜鸟 AI 研发效能实践</h4>
+                    <p>郭凤钊 菜鸟网络 /研发总监</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7103">
+                    <div class="fallback-room">源禧厅 1+2+3</div>
+                    <div class="fallback-topic">世界模型与多模态智能突破</div>
+                    <h4>高德世界模型：大规模真实时空数据驱动的端到端演进与量产实践</h4>
+                    <p>匀瀚 阿里巴巴 /高德 高级技术总监</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7098">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 原生数据工程</div>
+                    <h4>从模型诞生到上线：Ray 在小红书 AI 数据生产中的算力调度实践</h4>
+                    <p>陈宇 小红书 /数据引擎开发工程师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7131">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">金融领域大模型落地实践</div>
+                    <h4>AI 大模型驱动银行信贷业务的全链路变革</h4>
+                    <p>徐桢 嘉银科技 /解决方案总监</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7147">
+                    <div class="fallback-room">源福厅 1+2+3</div>
+                    <div class="fallback-topic">AI 时代的工作流重构：从 Coding 到 Anything</div>
+                    <h4>突破单点 AI 瓶颈：慧博零售全域 Agent 的数智化实践</h4>
+                    <p>贾世龙 慧博科技 /CTO</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>16:55-17:35</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7041">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 数据、记忆与运行时基础设施</div>
+                    <h4>小布记忆：全模态碎片化内容的理解与智能整理实践</h4>
+                    <p>王闯闯 OPPO /高级算法工程师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7126">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">企业级 AI 研发：从提效到转型</div>
+                    <h4>蚂蚁全链路 AI 研发，SDD规范驱动与 Harness 工程实践</h4>
+                    <p>彭宇 蚂蚁数科 /高级技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7112">
+                    <div class="fallback-room">源禧厅 1+2+3</div>
+                    <div class="fallback-topic">世界模型与多模态智能突破</div>
+                    <h4>商业安全大模型BLM： AI Native人机协同重构内容安全新范式</h4>
+                    <p>宫兆汉 快手 /商业化技术部 风控大模型负责人</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7097">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 原生数据工程</div>
+                    <h4>AI 时代数据面临新的挑战和解决之道</h4>
+                    <p>廖俊峰 深信服科技 /首席专家</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7132">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">金融领域大模型落地实践</div>
+                    <h4>从&quot;机审+人审&quot;到&quot;AI-Native&quot;：大模型与 Agent 驱动内容风控智能化升级</h4>
+                    <p>李海亮 蚂蚁集团 /内容安全架构师</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7148">
+                    <div class="fallback-room">源福厅 1+2+3</div>
+                    <div class="fallback-topic">AI 时代的工作流重构：从 Coding 到 Anything</div>
+                    <h4>面向 Loop Engineering 的 Qoder 托管运行时实践</h4>
+                    <p>屈立威（安陈） 阿里巴巴 /高级产品专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>17:35-18:15</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7061">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 数据、记忆与运行时基础设施</div>
+                    <h4>OpenViking 上下文数据库范式探索</h4>
+                    <p>盛茂家 火山引擎 / Viking 团队技术负责人</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7123">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">企业级 AI 研发：从提效到转型</div>
+                    <h4>从个人提效到组织生产力提升：快手 AI Coding 演进实践</h4>
+                    <p>李京 快手 /AI Coding 负责人</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7142">
+                    <div class="fallback-room">源禧厅 1+2+3</div>
+                    <div class="fallback-topic">世界模型与多模态智能突破</div>
+                    <h4>开悟世界模型：构筑原生大脑，驱动物理智能体持续进化</h4>
+                    <p>王飞 大晓机器人 /副总裁 开悟世界模型负责人</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+        </section>
+        <section class="fallback-day">
+          <h2>第二天 · 2026 年 6 月 27 日</h2>
+          
+            <div class="fallback-time">
+              <h3>09:30-10:10</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7056">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 系统架构与工程化实践</div>
+                    <h4>Agent Mesh：企业多智能体系统治理实践</h4>
+                    <p>裴斐 火山引擎 /服务治理领域负责人</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7106">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">Agent 安全、评测与可信治理</div>
+                    <h4>面向智能体的&quot;安全即服务&quot;模式探索：书安智能体操作系统的实践与思考</h4>
+                    <p>胡侠 上海人工智能实验室 /领军科学家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7066">
+                    <div class="fallback-room">源福厅 5</div>
+                    <div class="fallback-topic">企业智算架构弹性适配</div>
+                    <h4>训推一体潮汐弹性：蚂蚁集团在智算基础设施的池化调度实践</h4>
+                    <p>吴伟 蚂蚁集团 /高级技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7036">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 时代的移动端开发范式变迁</div>
+                    <h4>AI 时代的跨平台框架演进——以鸿蒙为例</h4>
+                    <p>谢国 华为 /鸿蒙突击队 编程框架首席技术专家</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7109">
+                    <div class="fallback-room">源禧厅 1+2+3</div>
+                    <div class="fallback-topic">端侧 AI、物理与数字空间智能化</div>
+                    <h4>高效端侧大模型的技术趋势与产业应用观察</h4>
+                    <p>井晨哲 面壁智能 /开源社区负责人</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7121">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">动手实验室：AI 智能体工程实践</div>
+                    <h4>Gemini Enterprise 平台入门与实战</h4>
+                    <p>肖元君 Google Cloud /解决方案架构师</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7166">
+                    <div class="fallback-room">源福厅1+2+3</div>
+                    <div class="fallback-topic">Agent 落地的前置解决方案专场</div>
+                    <h4>MongoDB高级解决方案架构师</h4>
+                    <p>周斌 MongoDB /MongoDB高级解决方案架构师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>10:25-11:05</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7037">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 系统架构与工程化实践</div>
+                    <h4>从唤醒到陪伴：多模态 Agent 如何重构手机交互范式</h4>
+                    <p>刘鹏 OPPO /高级算法工程师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7068">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">Agent 安全、评测与可信治理</div>
+                    <h4>以模治模——支付宝 Agent 安全漏洞智能化检测实践</h4>
+                    <p>盛锦辰（幻猫） 蚂蚁安全非攻实验室 / AI 安全研究员</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7107">
+                    <div class="fallback-room">源福厅 5</div>
+                    <div class="fallback-topic">企业智算架构弹性适配</div>
+                    <h4>大模型云上训练工程突破：阿里云PAI在超大规模集群下的调度与容错实践</h4>
+                    <p>贾珂 阿里云 /PAI 训练平台产品负责人</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7043">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 时代的移动端开发范式变迁</div>
+                    <h4>破局多端困境，拥抱 AI 变革：飞猪跨端技术的过去、现在与未来</h4>
+                    <p>陈立宝 飞猪 /高级技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7058">
+                    <div class="fallback-room">源禧厅 1+2+3</div>
+                    <div class="fallback-topic">端侧 AI、物理与数字空间智能化</div>
+                    <h4>AI 的&quot;最后一公里&quot;：本地执行与全场景硬件接入的下一代 Agent 中枢</h4>
+                    <p>吕永猛 涂鸦智能 /云端架构师</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7124">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">动手实验室：AI 智能体工程实践</div>
+                    <h4>使用 Agent Engine 构建与部署智能体</h4>
+                    <p>周彦君 Google Cloud /解决方案架构师</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7167">
+                    <div class="fallback-room">源福厅1+2+3</div>
+                    <div class="fallback-topic">Agent 落地的前置解决方案专场</div>
+                    <h4>模型视角下 Agentic cowork 大规模落地前的 N 个盲区及机遇</h4>
+                    <p>边思康 蚂蚁集团 /蚂蚁集团百灵基础模型产品和运营负责人</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>11:20-12:00</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7104">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 系统架构与工程化实践</div>
+                    <h4>从&quot;机械应答&quot;到&quot;服务伙伴&quot;：高可控智能客服的 Agent 工程实践</h4>
+                    <p>任巨伟 得物 /算法平台部算法专家</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7069">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">Agent 安全、评测与可信治理</div>
+                    <h4>阿里 AI 红队 - REAL 智能体统一风险矩阵与自动化红队实践</h4>
+                    <p>宋奇钊(胖錿) 阿里巴巴 /AAIG实验室AI红队负责人</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7034">
+                    <div class="fallback-room">源福厅 5</div>
+                    <div class="fallback-topic">企业智算架构弹性适配</div>
+                    <h4>算力新基建，推荐新智能：快手推荐系统池化的探索与实践</h4>
+                    <p>柳嘉强 快手 /计算引擎架构负责人</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7120">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 时代的移动端开发范式变迁</div>
+                    <h4>大前端稳定性研发范式重塑：柯南 AI Agent 工程实践</h4>
+                    <p>王泽锋 快手 /主站技术稳定性专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7169">
+                    <div class="fallback-room">源福厅1+2+3</div>
+                    <div class="fallback-topic">Agent 落地的前置解决方案专场</div>
+                    <h4>AI Native Business：从工具赋能到原生组织的转型实践</h4>
+                    <p>黄朝晖 广东灯塔引擎科技有限公司 /超级麦吉创始人兼CEO</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>14:00-14:40</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7059">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 系统架构与工程化实践</div>
+                    <h4>面向超大规模教育场景的 Agent 系统架构演进与工程实践</h4>
+                    <p>王搂 科大讯飞 /高级系统架构师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7101">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">企业级 AI 研发：从提效到转型</div>
+                    <h4>测试智能体驱动质量工程新范式</h4>
+                    <p>张晔 腾讯 /端服务质效技术负责人</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7110">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">大模型推理优化</div>
+                    <h4>Omni Cache：以内存为中心的KV管理与推理加速</h4>
+                    <p>Ken Zhang 华为 /高级技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7042">
+                    <div class="fallback-room">源福厅1+2+3</div>
+                    <div class="fallback-topic">人工智能前沿技术探索</div>
+                    <h4>迈向高保真与工业化：混元 3D 生成大模型从理论到实践的 SOTA 之路</h4>
+                    <p>杨祥辉 腾讯 /资深技术专家</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7113">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 开发生产力重构：Coder to Builder</div>
+                    <h4>得物推荐 AI Harness - 从&quot;狂野代码&quot;到&quot;按目标生产&quot;</h4>
+                    <p>白忠魏 得物 /资深技术专家</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7170">
+                    <div class="fallback-room">源福厅5</div>
+                    <div class="fallback-topic">在 AI 时代的iOS、 Android、鸿蒙生态下，如何做好 Coding 这件事</div>
+                    <h4>鸿蒙 AI Coding的研发新范式</h4>
+                    <p>许云红 华为 /华为终端软件部AI技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>14:55-15:35</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7057">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 系统架构与工程化实践</div>
+                    <h4>AI Agent 沙箱的网络安全：从流量隔离到智能治理</h4>
+                    <p>王炳燊 阿里云 /高级技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7122">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">企业级 AI 研发：从提效到转型</div>
+                    <h4>从「用了 AI」到「AI 原生」——蚂蚁数科企业级 AGI 研发体系重塑实战</h4>
+                    <p>刘秀婷 蚂蚁数字科技 /PMO &amp; AI 研发效能负责人，蚂蚁数科 AGI 委员会主席</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7116">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">大模型推理优化</div>
+                    <h4>从数据表征到数据流编排的存算协同优化</h4>
+                    <p>刘方鑫 上海交大 /助理教授 &amp; 博士生导师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7117">
+                    <div class="fallback-room">源福厅1+2+3</div>
+                    <div class="fallback-topic">人工智能前沿技术探索</div>
+                    <h4>得物电商多场景排序大模型：从千万到十亿参数的Scaling Up实践</h4>
+                    <p>吴光亚 得物 /算法专家</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7114">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 开发生产力重构：Coder to Builder</div>
+                    <h4>Seal：小红书企业级 AI 个人助理的从 0 到全员覆盖</h4>
+                    <p>孟洪进 小红书 /架构师</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7171">
+                    <div class="fallback-room">源福厅5</div>
+                    <div class="fallback-topic">在 AI 时代的iOS、 Android、鸿蒙生态下，如何做好 Coding 这件事</div>
+                    <h4>iOS开发体验分享与优秀实践 &amp; AI 时代 Android 开发体验与优秀实践</h4>
+                    <p>王健 美团 /美团Android 技术专家</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>16:00-16:40</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7105">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 系统架构与工程化实践</div>
+                    <h4>Self-GC：一种结合前缀缓存约束的多轮 Agent 上下文治理方案</h4>
+                    <p>郝栩彬 小红书 /AI 工程架构师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7139">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">企业级 AI 研发：从提效到转型</div>
+                    <h4>AI 研发下半场的组织进化与 Agent Centric Engineering 实践</h4>
+                    <p>董鑫 华为 2012 实验室 /项目群总监</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7055">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">大模型推理优化</div>
+                    <h4>xLLM 的投机推理架构设计</h4>
+                    <p>梁志伟 京东 /算法工程师</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7100">
+                    <div class="fallback-room">源福厅1+2+3</div>
+                    <div class="fallback-topic">人工智能前沿技术探索</div>
+                    <h4>MinerU：面向 Agent 时代的文档解析基础设施演进与实践</h4>
+                    <p>何聪辉 上海人工智能实验室 /青年科学家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7115">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 开发生产力重构：Coder to Builder</div>
+                    <h4>从 AI Coding 到可验收的研发闭环：蚂蚁数科Harness工程实践</h4>
+                    <p>魏长征 蚂蚁数字科技 /资深技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7173">
+                    <div class="fallback-room">源福厅5</div>
+                    <div class="fallback-topic">在 AI 时代的iOS、 Android、鸿蒙生态下，如何做好 Coding 这件事</div>
+                    <h4>从个人提效到组织生产力提升：快手 AI Coding 演进实践 &amp; Coding Agent 重塑研发效率 · 超级个体篇</h4>
+                    <p>李京 快手 /AI Coding 负责人</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+              </div>
+            </div>
+            <div class="fallback-time">
+              <h3>16:55-17:35</h3>
+              <div class="fallback-session-list">
+                
+                  <article class="fallback-session" data-fallback-session-id="7108">
+                    <div class="fallback-room">祥源宴会厅 西厅</div>
+                    <div class="fallback-topic">Agent 系统架构与工程化实践</div>
+                    <h4>Roboneo：设计生产场景下多智能体编排工程实践</h4>
+                    <p>周劲飞 美图 /高级算法工程师</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7102">
+                    <div class="fallback-room">祥源宴会厅 中厅</div>
+                    <div class="fallback-topic">企业级 AI 研发：从提效到转型</div>
+                    <h4>网易智企 IM 研发多智能体中心建设与实践：从单点 Agent 到研发基础设施</h4>
+                    <p>徐孟祥 网易 /资深全栈工程师</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7064">
+                    <div class="fallback-room">源福厅 6</div>
+                    <div class="fallback-topic">大模型推理优化</div>
+                    <h4>记忆感知的大模型 KVCache 优化</h4>
+                    <p>马腾 阿里云 /高级技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7046">
+                    <div class="fallback-room">源福厅1+2+3</div>
+                    <div class="fallback-topic">人工智能前沿技术探索</div>
+                    <h4>生成式推荐引擎升级，快手在线参数服务器性能与时延深度优化实践</h4>
+                    <p>贾荣来 快手科技 /社区科学部 推荐架构高级专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7119">
+                    <div class="fallback-room">祥源宴会厅 东厅</div>
+                    <div class="fallback-topic">AI 开发生产力重构：Coder to Builder</div>
+                    <h4>Qoder CLI：终端里的全栈工程师——从 Coding Agent 到企业级 AI 应用基础设施</h4>
+                    <p>徐亮亮 阿里巴巴 / Qoder 技术专家</p>
+                    <span class="ppt-badge unmarked">PPT 未标注</span>
+                  </article>
+                  <article class="fallback-session" data-fallback-session-id="7174">
+                    <div class="fallback-room">源福厅5</div>
+                    <div class="fallback-topic">在 AI 时代的iOS、 Android、鸿蒙生态下，如何做好 Coding 这件事</div>
+                    <h4>AI辅助开发工具在鸿蒙开发领域的优秀实践</h4>
+                    <p>姜钰潇 华为 /华为终端软件部Agent产品架构师</p>
+                    <span class="ppt-badge forbidden">不提供 PPT</span>
+                  </article>
+              </div>
+            </div>
+        </section>
+    </section>
+      <div class="matrix-scroll" id="desktop-schedule"></div>
+      <div class="mobile-schedule" id="mobile-schedule"></div>
+      <div class="empty-state" id="empty-state" hidden>当前筛选条件下没有议题。</div>
+    </section>
+  </main>
+
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="detail-drawer" id="detail-drawer" aria-label="议题详情" aria-hidden="true"></aside>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script id="schedule-data" type="application/json">{"conference":{"name":"AICon 2026 上海站","dates":["2026-06-26","2026-06-27"],"venue":"上海虹桥祥源希尔顿酒店","sourceUrl":"https://aicon.infoq.cn/2026/shanghai/schedule","capturedAt":"2026-06-24","pptNote":"抓取时官网有 30 场明确标注不提供 PPT，45 场尚未标注，暂无可直接下载的 PPT。"},"members":[{"id":"zhong","name":"仲维勇","color":"#df3b52"},{"id":"chen","name":"陈汉标","color":"#0d7c72"},{"id":"niu","name":"牛伟才","color":"#6d4bc3"}],"sessions":[{"id":"7133","day":1,"date":"2026-06-26","time":"09:00-09:15","title":"拆墙、减层、小型化：AI 时代的工程化组织进化","topic":"Keynote 主题演讲","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1946","producer":"","room":"主会场","speakerText":"赵钰莹 极客邦科技 /总编辑","speakers":[{"name":"赵钰莹 极客邦科技","company":"","position":"总编辑"}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7133","focus":[],"summary":"围绕“拆墙、减层、小型化：AI 时代的工程化组织进化”展开，分享相关方法、工程实践与落地经验。","takeaways":["了解议题背景、方案设计与实际落地经验"]},{"id":"7125","day":1,"date":"2026-06-26","time":"09:15-09:55","title":"迈向交互新范式——MOSS 多模态模型的创新与实践","topic":"Keynote 主题演讲","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1946","producer":"","room":"主会场","speakerText":"邱锡鹏 复旦大学 /教授、上海创智学院院长助理 & 模思智能创始人","speakers":[{"name":"主题演讲嘉宾：邱锡鹏","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7125","focus":["多模态","模型与推理"],"summary":"围绕“迈向交互新范式——MOSS 多模态模型的创新与实践”展开，官网详情重点涉及多模态、模型与推理等方向。","takeaways":["了解多模态相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7134","day":1,"date":"2026-06-26","time":"09:55-10:35","title":"从 Token 数量到 Token 密度：万亿参数规模下的高效智能体智能","topic":"Keynote 主题演讲","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1946","producer":"","room":"主会场","speakerText":"周俊 蚂蚁集团 /副总裁","speakers":[{"name":"周俊 蚂蚁集团","company":"","position":"副总裁"}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7134","focus":["身份与权限"],"summary":"围绕“从 Token 数量到 Token 密度：万亿参数规模下的高效智能体智能”展开，官网详情重点涉及身份与权限等方向。","takeaways":["了解身份与权限相关的关键问题与实践思路"]},{"id":"7136","day":1,"date":"2026-06-26","time":"10:35-11:15","title":"迈向 Token 服务新范式——从评测到调度的全链路优化供给","topic":"Keynote 主题演讲","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1946","producer":"","room":"主会场","speakerText":"冷静文 上海交通大学 /计算机学院副院长、教授&博士生导师","speakers":[{"name":"主题演讲嘉宾：冷静文","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7136","focus":["身份与权限","记忆与上下文","运行时与编排","模型与推理","系统治理"],"summary":"围绕“迈向 Token 服务新范式——从评测到调度的全链路优化供给”展开，官网详情重点涉及身份与权限、记忆与上下文、运行时与编排、模型与推理、系统治理等方向。","takeaways":["了解身份与权限相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7140","day":1,"date":"2026-06-26","time":"11:15-11:55","title":"2026下半年中美AI创业机会：从技术红利到商业验证","topic":"Keynote 主题演讲","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1946","producer":"","room":"主会场","speakerText":"肇极 观正资本 /创始合伙人","speakers":[{"name":"主题演讲嘉宾：肇极","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7140","focus":["端侧与硬件","模型与推理","业务落地"],"summary":"围绕“2026下半年中美AI创业机会：从技术红利到商业验证”展开，官网详情重点涉及端侧与硬件、模型与推理、业务落地等方向。","takeaways":["了解端侧与硬件相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7039","day":1,"date":"2026-06-26","time":"14:00-14:40","title":"Agent 的下一站：基于长期记忆系统 EverOS 的自我演进","topic":"Agent 数据、记忆与运行时基础设施","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1927","producer":"邓亚峰","room":"祥源宴会厅 西厅","speakerText":"邓亚峰 盛大集团 /副总裁 & EverMind CEO","speakers":[{"name":"邓亚峰","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7039","focus":["记忆与上下文","运行时与编排","模型与推理","业务落地"],"summary":"围绕“Agent 的下一站：基于长期记忆系统 EverOS 的自我演进”展开，官网详情重点涉及记忆与上下文、运行时与编排、模型与推理、业务落地等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7135","day":1,"date":"2026-06-26","time":"14:00-14:40","title":"从辅助到自主：Coding Agent重塑华为软件研发效率","topic":"企业级 AI 研发：从提效到转型","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1938","producer":"沈浪","room":"祥源宴会厅 中厅","speakerText":"张琦 华为 /Coding Agent 技术专家","speakers":[{"name":"张琦","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7135","focus":["研发效能","模型与推理"],"summary":"围绕“从辅助到自主：Coding Agent重塑华为软件研发效率”展开，官网详情重点涉及研发效能、模型与推理等方向。","takeaways":["了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7063","day":1,"date":"2026-06-26","time":"14:00-14:40","title":"走向统一智能：多模态生成与理解的架构演进","topic":"世界模型与多模态智能突破","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1937","producer":"朱政","room":"源禧厅 1+2+3","speakerText":"俞刚 阶跃星辰 /副总裁","speakers":[{"name":"俞刚","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7063","focus":["多模态","模型与推理"],"summary":"围绕“走向统一智能：多模态生成与理解的架构演进”展开，官网详情重点涉及多模态、模型与推理等方向。","takeaways":["了解多模态相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7053","day":1,"date":"2026-06-26","time":"14:00-14:40","title":"数据不止于洞察，构建企业 Agent 的自动化行动架构","topic":"AI 原生数据工程","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1943","producer":"王彦辉","room":"祥源宴会厅 东厅","speakerText":"刘少伟 阿里云智能集团 /高级技术专家","speakers":[{"name":"刘少伟","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7053","focus":["记忆与上下文","运行时与编排","数据工程","多模态","模型与推理"],"summary":"围绕“数据不止于洞察，构建企业 Agent 的自动化行动架构”展开，官网详情重点涉及记忆与上下文、运行时与编排、数据工程、多模态、模型与推理等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解数据工程相关的关键问题与实践思路","了解多模态相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7118","day":1,"date":"2026-06-26","time":"14:00-14:40","title":"从\"事后救火\"到\"事前先知\"：Agentic AI重塑风控心智，驱动金融反欺诈自驱式生长","topic":"金融领域大模型落地实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1932","producer":"董纪伟","room":"源福厅 6","speakerText":"马敬涛 小盾未来 /AI 产品解决方案专家","speakers":[{"name":"马敬涛","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7118","focus":["Agent 安全","记忆与上下文","模型与推理","业务落地"],"summary":"围绕“从\"事后救火\"到\"事前先知\"：Agentic AI重塑风控心智，驱动金融反欺诈自驱式生长”展开，官网详情重点涉及Agent 安全、记忆与上下文、模型与推理、业务落地等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7144","day":1,"date":"2026-06-26","time":"14:00-14:40","title":"从辅助编程到自主交付：Qoder Desktop 的多 Agent 协作与 Harness 实践","topic":"AI 时代的工作流重构：从 Coding 到 Anything","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1981","producer":"陈鑫","room":"源福厅 1+2+3","speakerText":"左志鹏 阿里巴巴 /高级技术专家","speakers":[{"name":"左志鹏","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7144","focus":["运行时与编排","研发效能"],"summary":"围绕“从辅助编程到自主交付：Qoder Desktop 的多 Agent 协作与 Harness 实践”展开，官网详情重点涉及运行时与编排、研发效能等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7038","day":1,"date":"2026-06-26","time":"14:55-15:35","title":"面向智能体与人类用户的AI记忆系统：架构设计与核心场景实践","topic":"Agent 数据、记忆与运行时基础设施","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1927","producer":"邓亚峰","room":"祥源宴会厅 西厅","speakerText":"范承工 MemVerge /联合创始人&CEO","speakers":[{"name":"范承工","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7038","focus":["身份与权限","记忆与上下文","运行时与编排","数据工程","模型与推理"],"summary":"围绕“面向智能体与人类用户的AI记忆系统：架构设计与核心场景实践”展开，官网详情重点涉及身份与权限、记忆与上下文、运行时与编排、数据工程、模型与推理等方向。","takeaways":["了解身份与权限相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解数据工程相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7067","day":1,"date":"2026-06-26","time":"14:55-15:35","title":"小红书 vibe coding 平台（Muse）之高可用人机共创 Agentic 系统架构实践","topic":"企业级 AI 研发：从提效到转型","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1938","producer":"沈浪","room":"祥源宴会厅 中厅","speakerText":"郑鑫祺 小红书 /AI Coding 总架构师","speakers":[{"name":"郑鑫祺","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7067","focus":["Agent 安全","记忆与上下文","运行时与编排","多模态","研发效能"],"summary":"围绕“小红书 vibe coding 平台（Muse）之高可用人机共创 Agentic 系统架构实践”展开，官网详情重点涉及Agent 安全、记忆与上下文、运行时与编排、多模态、研发效能等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解多模态相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7052","day":1,"date":"2026-06-26","time":"14:55-15:35","title":"腾讯混元世界模型的研发布局与思考","topic":"世界模型与多模态智能突破","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1937","producer":"朱政","room":"源禧厅 1+2+3","speakerText":"王腾飞 腾讯 / 3D 世界模型负责人","speakers":[{"name":"王腾飞","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7052","focus":["多模态","研发效能","模型与推理"],"summary":"围绕“腾讯混元世界模型的研发布局与思考”展开，官网详情重点涉及多模态、研发效能、模型与推理等方向。","takeaways":["了解多模态相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7065","day":1,"date":"2026-06-26","time":"14:55-15:35","title":"Lance 实践：从多模态数据湖到 Agent 记忆湖的演进之路","topic":"AI 原生数据工程","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1943","producer":"王彦辉","room":"祥源宴会厅 东厅","speakerText":"马进 抖音集团 /数据引擎开发工程师","speakers":[{"name":"马进","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7065","focus":["记忆与上下文","数据工程","多模态","模型与推理","系统治理"],"summary":"围绕“Lance 实践：从多模态数据湖到 Agent 记忆湖的演进之路”展开，官网详情重点涉及记忆与上下文、数据工程、多模态、模型与推理、系统治理等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解数据工程相关的关键问题与实践思路","了解多模态相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7127","day":1,"date":"2026-06-26","time":"14:55-15:35","title":"AI 神盾平台在金融生态中的智能风控实践","topic":"金融领域大模型落地实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1932","producer":"董纪伟","room":"源福厅 6","speakerText":"黄佳豪 平安人寿 /金管家基础平台研发组副经理","speakers":[{"name":"黄佳豪","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7127","focus":["Agent 安全","模型与推理","业务落地"],"summary":"围绕“AI 神盾平台在金融生态中的智能风控实践”展开，官网详情重点涉及Agent 安全、模型与推理、业务落地等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7145","day":1,"date":"2026-06-26","time":"14:55-15:35","title":"重塑本地生产力：QoderWork 桌面 Agent 的设计密码与效能突破","topic":"AI 时代的工作流重构：从 Coding 到 Anything","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1981","producer":"陈鑫","room":"源福厅 1+2+3","speakerText":"赵明 阿里巴巴 /高级技术专家","speakers":[{"name":"赵明","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7145","focus":["Agent 安全","身份与权限","沙箱与隔离","记忆与上下文","运行时与编排"],"summary":"围绕“重塑本地生产力：QoderWork 桌面 Agent 的设计密码与效能突破”展开，官网详情重点涉及Agent 安全、身份与权限、沙箱与隔离、记忆与上下文、运行时与编排等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解身份与权限相关的关键问题与实践思路","了解沙箱与隔离相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路"]},{"id":"7137","day":1,"date":"2026-06-26","time":"16:00-16:40","title":"从逻辑到基座：构建高可靠生产级 Agent 的数据、记忆与运行时基础设施","topic":"Agent 数据、记忆与运行时基础设施","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1927","producer":"邓亚峰","room":"祥源宴会厅 西厅","speakerText":"董仕超 Google Cloud /解决方案架构师","speakers":[{"name":"董仕超","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7137","focus":["Agent 安全","身份与权限","沙箱与隔离","记忆与上下文","运行时与编排"],"summary":"围绕“从逻辑到基座：构建高可靠生产级 Agent 的数据、记忆与运行时基础设施”展开，官网详情重点涉及Agent 安全、身份与权限、沙箱与隔离、记忆与上下文、运行时与编排等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解身份与权限相关的关键问题与实践思路","了解沙箱与隔离相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路"]},{"id":"7062","day":1,"date":"2026-06-26","time":"16:00-16:40","title":"从 Vibe Coding 到需求托管交付 Agent，菜鸟 AI 研发效能实践","topic":"企业级 AI 研发：从提效到转型","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1938","producer":"沈浪","room":"祥源宴会厅 中厅","speakerText":"郭凤钊 菜鸟网络 /研发总监","speakers":[{"name":"郭凤钊","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7062","focus":["记忆与上下文","运行时与编排","研发效能"],"summary":"围绕“从 Vibe Coding 到需求托管交付 Agent，菜鸟 AI 研发效能实践”展开，官网详情重点涉及记忆与上下文、运行时与编排、研发效能等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7103","day":1,"date":"2026-06-26","time":"16:00-16:40","title":"高德世界模型：大规模真实时空数据驱动的端到端演进与量产实践","topic":"世界模型与多模态智能突破","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1937","producer":"朱政","room":"源禧厅 1+2+3","speakerText":"匀瀚 阿里巴巴 /高德 高级技术总监","speakers":[{"name":"匀瀚","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7103","focus":["运行时与编排","多模态","研发效能","模型与推理"],"summary":"围绕“高德世界模型：大规模真实时空数据驱动的端到端演进与量产实践”展开，官网详情重点涉及运行时与编排、多模态、研发效能、模型与推理等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解多模态相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7098","day":1,"date":"2026-06-26","time":"16:00-16:40","title":"从模型诞生到上线：Ray 在小红书 AI 数据生产中的算力调度实践","topic":"AI 原生数据工程","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1943","producer":"王彦辉","room":"祥源宴会厅 东厅","speakerText":"陈宇 小红书 /数据引擎开发工程师","speakers":[{"name":"陈宇","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7098","focus":["运行时与编排","数据工程","研发效能","模型与推理"],"summary":"围绕“从模型诞生到上线：Ray 在小红书 AI 数据生产中的算力调度实践”展开，官网详情重点涉及运行时与编排、数据工程、研发效能、模型与推理等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解数据工程相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7131","day":1,"date":"2026-06-26","time":"16:00-16:40","title":"AI 大模型驱动银行信贷业务的全链路变革","topic":"金融领域大模型落地实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1932","producer":"董纪伟","room":"源福厅 6","speakerText":"徐桢 嘉银科技 /解决方案总监","speakers":[{"name":"徐桢","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7131","focus":["Agent 安全","模型与推理","业务落地"],"summary":"围绕“AI 大模型驱动银行信贷业务的全链路变革”展开，官网详情重点涉及Agent 安全、模型与推理、业务落地等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7147","day":1,"date":"2026-06-26","time":"16:00-16:40","title":"突破单点 AI 瓶颈：慧博零售全域 Agent 的数智化实践","topic":"AI 时代的工作流重构：从 Coding 到 Anything","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1981","producer":"陈鑫","room":"源福厅 1+2+3","speakerText":"贾世龙 慧博科技 /CTO","speakers":[{"name":"贾世龙","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7147","focus":["身份与权限","记忆与上下文","运行时与编排","数据工程","研发效能"],"summary":"围绕“突破单点 AI 瓶颈：慧博零售全域 Agent 的数智化实践”展开，官网详情重点涉及身份与权限、记忆与上下文、运行时与编排、数据工程、研发效能等方向。","takeaways":["了解身份与权限相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解数据工程相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7041","day":1,"date":"2026-06-26","time":"16:55-17:35","title":"小布记忆：全模态碎片化内容的理解与智能整理实践","topic":"Agent 数据、记忆与运行时基础设施","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1927","producer":"邓亚峰","room":"祥源宴会厅 西厅","speakerText":"王闯闯 OPPO /高级算法工程师","speakers":[{"name":"王闯闯","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7041","focus":["记忆与上下文","运行时与编排","多模态","端侧与硬件","模型与推理"],"summary":"围绕“小布记忆：全模态碎片化内容的理解与智能整理实践”展开，官网详情重点涉及记忆与上下文、运行时与编排、多模态、端侧与硬件、模型与推理等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解多模态相关的关键问题与实践思路","了解端侧与硬件相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7126","day":1,"date":"2026-06-26","time":"16:55-17:35","title":"蚂蚁全链路 AI 研发，SDD规范驱动与 Harness 工程实践","topic":"企业级 AI 研发：从提效到转型","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1938","producer":"沈浪","room":"祥源宴会厅 中厅","speakerText":"彭宇 蚂蚁数科 /高级技术专家","speakers":[{"name":"彭宇 蚂蚁数科","company":"","position":"高级技术专家"}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7126","focus":["运行时与编排","研发效能"],"summary":"围绕“蚂蚁全链路 AI 研发，SDD规范驱动与 Harness 工程实践”展开，官网详情重点涉及运行时与编排、研发效能等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7112","day":1,"date":"2026-06-26","time":"16:55-17:35","title":"商业安全大模型BLM： AI Native人机协同重构内容安全新范式","topic":"世界模型与多模态智能突破","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1937","producer":"朱政","room":"源禧厅 1+2+3","speakerText":"宫兆汉 快手 /商业化技术部 风控大模型负责人","speakers":[{"name":"宫兆汉","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7112","focus":["Agent 安全","多模态","模型与推理","业务落地"],"summary":"围绕“商业安全大模型BLM： AI Native人机协同重构内容安全新范式”展开，官网详情重点涉及Agent 安全、多模态、模型与推理、业务落地等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解多模态相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7097","day":1,"date":"2026-06-26","time":"16:55-17:35","title":"AI 时代数据面临新的挑战和解决之道","topic":"AI 原生数据工程","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1943","producer":"王彦辉","room":"祥源宴会厅 东厅","speakerText":"廖俊峰 深信服科技 /首席专家","speakers":[{"name":"廖俊峰","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7097","focus":["Agent 安全","记忆与上下文","数据工程","研发效能","系统治理"],"summary":"围绕“AI 时代数据面临新的挑战和解决之道”展开，官网详情重点涉及Agent 安全、记忆与上下文、数据工程、研发效能、系统治理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解数据工程相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7132","day":1,"date":"2026-06-26","time":"16:55-17:35","title":"从\"机审+人审\"到\"AI-Native\"：大模型与 Agent 驱动内容风控智能化升级","topic":"金融领域大模型落地实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1932","producer":"董纪伟","room":"源福厅 6","speakerText":"李海亮 蚂蚁集团 /内容安全架构师","speakers":[{"name":"李海亮","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7132","focus":["Agent 安全","模型与推理","业务落地","系统治理"],"summary":"围绕“从\"机审+人审\"到\"AI-Native\"：大模型与 Agent 驱动内容风控智能化升级”展开，官网详情重点涉及Agent 安全、模型与推理、业务落地、系统治理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7148","day":1,"date":"2026-06-26","time":"16:55-17:35","title":"面向 Loop Engineering 的 Qoder 托管运行时实践","topic":"AI 时代的工作流重构：从 Coding 到 Anything","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1981","producer":"陈鑫","room":"源福厅 1+2+3","speakerText":"屈立威（安陈） 阿里巴巴 /高级产品专家","speakers":[{"name":"屈立威（安陈）","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7148","focus":["Agent 安全","沙箱与隔离","运行时与编排","端侧与硬件","研发效能"],"summary":"围绕“面向 Loop Engineering 的 Qoder 托管运行时实践”展开，官网详情重点涉及Agent 安全、沙箱与隔离、运行时与编排、端侧与硬件、研发效能等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解沙箱与隔离相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解端侧与硬件相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7061","day":1,"date":"2026-06-26","time":"17:35-18:15","title":"OpenViking 上下文数据库范式探索","topic":"Agent 数据、记忆与运行时基础设施","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1927","producer":"邓亚峰","room":"祥源宴会厅 西厅","speakerText":"盛茂家 火山引擎 / Viking 团队技术负责人","speakers":[{"name":"盛茂家","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7061","focus":["记忆与上下文","运行时与编排"],"summary":"围绕“OpenViking 上下文数据库范式探索”展开，官网详情重点涉及记忆与上下文、运行时与编排等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路"]},{"id":"7123","day":1,"date":"2026-06-26","time":"17:35-18:15","title":"从个人提效到组织生产力提升：快手 AI Coding 演进实践","topic":"企业级 AI 研发：从提效到转型","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1938","producer":"沈浪","room":"祥源宴会厅 中厅","speakerText":"李京 快手 /AI Coding 负责人","speakers":[{"name":"李京","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7123","focus":["研发效能","模型与推理"],"summary":"围绕“从个人提效到组织生产力提升：快手 AI Coding 演进实践”展开，官网详情重点涉及研发效能、模型与推理等方向。","takeaways":["了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7142","day":1,"date":"2026-06-26","time":"17:35-18:15","title":"开悟世界模型：构筑原生大脑，驱动物理智能体持续进化","topic":"世界模型与多模态智能突破","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1937","producer":"朱政","room":"源禧厅 1+2+3","speakerText":"王飞 大晓机器人 /副总裁 开悟世界模型负责人","speakers":[{"name":"王飞","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7142","focus":["多模态","模型与推理"],"summary":"围绕“开悟世界模型：构筑原生大脑，驱动物理智能体持续进化”展开，官网详情重点涉及多模态、模型与推理等方向。","takeaways":["了解多模态相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7056","day":2,"date":"2026-06-27","time":"09:30-10:10","title":"Agent Mesh：企业多智能体系统治理实践","topic":"Agent 系统架构与工程化实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1926","producer":"鲁浩楠","room":"祥源宴会厅 西厅","speakerText":"裴斐 火山引擎 /服务治理领域负责人","speakers":[{"name":"裴斐","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7056","focus":["Agent 安全","身份与权限","模型与推理","业务落地","系统治理"],"summary":"围绕“Agent Mesh：企业多智能体系统治理实践”展开，官网详情重点涉及Agent 安全、身份与权限、模型与推理、业务落地、系统治理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解身份与权限相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7106","day":2,"date":"2026-06-27","time":"09:30-10:10","title":"面向智能体的\"安全即服务\"模式探索：书安智能体操作系统的实践与思考","topic":"Agent 安全、评测与可信治理","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1928","producer":"马传雷（岳立）","room":"祥源宴会厅 中厅","speakerText":"胡侠 上海人工智能实验室 /领军科学家","speakers":[{"name":"胡侠","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7106","focus":["Agent 安全","身份与权限","沙箱与隔离","研发效能","模型与推理"],"summary":"围绕“面向智能体的\"安全即服务\"模式探索：书安智能体操作系统的实践与思考”展开，官网详情重点涉及Agent 安全、身份与权限、沙箱与隔离、研发效能、模型与推理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解身份与权限相关的关键问题与实践思路","了解沙箱与隔离相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7066","day":2,"date":"2026-06-27","time":"09:30-10:10","title":"训推一体潮汐弹性：蚂蚁集团在智算基础设施的池化调度实践","topic":"企业智算架构弹性适配","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1925","producer":"梁潇","room":"源福厅 5","speakerText":"吴伟 蚂蚁集团 /高级技术专家","speakers":[{"name":"吴伟","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7066","focus":["运行时与编排","模型与推理"],"summary":"围绕“训推一体潮汐弹性：蚂蚁集团在智算基础设施的池化调度实践”展开，官网详情重点涉及运行时与编排、模型与推理等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7036","day":2,"date":"2026-06-27","time":"09:30-10:10","title":"AI 时代的跨平台框架演进——以鸿蒙为例","topic":"AI 时代的移动端开发范式变迁","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1942","producer":"谢国","room":"祥源宴会厅 东厅","speakerText":"谢国 华为 /鸿蒙突击队 编程框架首席技术专家","speakers":[{"name":"谢国","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7036","focus":["运行时与编排","端侧与硬件"],"summary":"围绕“AI 时代的跨平台框架演进——以鸿蒙为例”展开，官网详情重点涉及运行时与编排、端侧与硬件等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解端侧与硬件相关的关键问题与实践思路"]},{"id":"7109","day":2,"date":"2026-06-27","time":"09:30-10:10","title":"高效端侧大模型的技术趋势与产业应用观察","topic":"端侧 AI、物理与数字空间智能化","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1931","producer":"杨小东","room":"源禧厅 1+2+3","speakerText":"井晨哲 面壁智能 /开源社区负责人","speakers":[{"name":"井晨哲","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7109","focus":["Agent 安全","端侧与硬件","模型与推理"],"summary":"围绕“高效端侧大模型的技术趋势与产业应用观察”展开，官网详情重点涉及Agent 安全、端侧与硬件、模型与推理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解端侧与硬件相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7121","day":2,"date":"2026-06-27","time":"09:30-10:10","title":"Gemini Enterprise 平台入门与实战","topic":"动手实验室：AI 智能体工程实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1957","producer":"Google Cloud 团队","room":"源福厅 6","speakerText":"肖元君 Google Cloud /解决方案架构师","speakers":[{"name":"肖元君","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7121","focus":["Agent 安全","运行时与编排","研发效能","模型与推理","业务落地"],"summary":"围绕“Gemini Enterprise 平台入门与实战”展开，官网详情重点涉及Agent 安全、运行时与编排、研发效能、模型与推理、业务落地等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7166","day":2,"date":"2026-06-27","time":"09:30-10:10","title":"MongoDB高级解决方案架构师","topic":"Agent 落地的前置解决方案专场","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1982","producer":"","room":"源福厅1+2+3","speakerText":"周斌 MongoDB /MongoDB高级解决方案架构师","speakers":[{"name":"周斌","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7166","focus":["Agent 安全","记忆与上下文","数据工程","多模态","模型与推理"],"summary":"围绕“MongoDB高级解决方案架构师”展开，官网详情重点涉及Agent 安全、记忆与上下文、数据工程、多模态、模型与推理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解数据工程相关的关键问题与实践思路","了解多模态相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7037","day":2,"date":"2026-06-27","time":"10:25-11:05","title":"从唤醒到陪伴：多模态 Agent 如何重构手机交互范式","topic":"Agent 系统架构与工程化实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1926","producer":"鲁浩楠","room":"祥源宴会厅 西厅","speakerText":"刘鹏 OPPO /高级算法工程师","speakers":[{"name":"刘鹏","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7037","focus":["记忆与上下文","多模态"],"summary":"围绕“从唤醒到陪伴：多模态 Agent 如何重构手机交互范式”展开，官网详情重点涉及记忆与上下文、多模态等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解多模态相关的关键问题与实践思路"]},{"id":"7068","day":2,"date":"2026-06-27","time":"10:25-11:05","title":"以模治模——支付宝 Agent 安全漏洞智能化检测实践","topic":"Agent 安全、评测与可信治理","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1928","producer":"马传雷（岳立）","room":"祥源宴会厅 中厅","speakerText":"盛锦辰（幻猫） 蚂蚁安全非攻实验室 / AI 安全研究员","speakers":[{"name":"盛锦辰（幻猫） 蚂蚁安全非攻实验室","company":"","position":"AI 安全研究员"}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7068","focus":["Agent 安全","系统治理"],"summary":"围绕“以模治模——支付宝 Agent 安全漏洞智能化检测实践”展开，官网详情重点涉及Agent 安全、系统治理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7107","day":2,"date":"2026-06-27","time":"10:25-11:05","title":"大模型云上训练工程突破：阿里云PAI在超大规模集群下的调度与容错实践","topic":"企业智算架构弹性适配","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1925","producer":"梁潇","room":"源福厅 5","speakerText":"贾珂 阿里云 /PAI 训练平台产品负责人","speakers":[{"name":"贾珂","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7107","focus":["沙箱与隔离","运行时与编排","模型与推理","系统治理"],"summary":"围绕“大模型云上训练工程突破：阿里云PAI在超大规模集群下的调度与容错实践”展开，官网详情重点涉及沙箱与隔离、运行时与编排、模型与推理、系统治理等方向。","takeaways":["了解沙箱与隔离相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7043","day":2,"date":"2026-06-27","time":"10:25-11:05","title":"破局多端困境，拥抱 AI 变革：飞猪跨端技术的过去、现在与未来","topic":"AI 时代的移动端开发范式变迁","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1942","producer":"谢国","room":"祥源宴会厅 东厅","speakerText":"陈立宝 飞猪 /高级技术专家","speakers":[{"name":"陈立宝 飞猪","company":"","position":"高级技术专家"}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7043","focus":["端侧与硬件"],"summary":"围绕“破局多端困境，拥抱 AI 变革：飞猪跨端技术的过去、现在与未来”展开，官网详情重点涉及端侧与硬件等方向。","takeaways":["了解端侧与硬件相关的关键问题与实践思路"]},{"id":"7058","day":2,"date":"2026-06-27","time":"10:25-11:05","title":"AI 的\"最后一公里\"：本地执行与全场景硬件接入的下一代 Agent 中枢","topic":"端侧 AI、物理与数字空间智能化","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1931","producer":"杨小东","room":"源禧厅 1+2+3","speakerText":"吕永猛 涂鸦智能 /云端架构师","speakers":[{"name":"吕永猛","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7058","focus":["端侧与硬件"],"summary":"围绕“AI 的\"最后一公里\"：本地执行与全场景硬件接入的下一代 Agent 中枢”展开，官网详情重点涉及端侧与硬件等方向。","takeaways":["了解端侧与硬件相关的关键问题与实践思路"]},{"id":"7124","day":2,"date":"2026-06-27","time":"10:25-11:05","title":"使用 Agent Engine 构建与部署智能体","topic":"动手实验室：AI 智能体工程实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1957","producer":"Google Cloud 团队","room":"源福厅 6","speakerText":"周彦君 Google Cloud /解决方案架构师","speakers":[{"name":"周彦君","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7124","focus":["Agent 安全","沙箱与隔离","运行时与编排","研发效能","模型与推理"],"summary":"围绕“使用 Agent Engine 构建与部署智能体”展开，官网详情重点涉及Agent 安全、沙箱与隔离、运行时与编排、研发效能、模型与推理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解沙箱与隔离相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7167","day":2,"date":"2026-06-27","time":"10:25-11:05","title":"模型视角下 Agentic cowork 大规模落地前的 N 个盲区及机遇","topic":"Agent 落地的前置解决方案专场","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1982","producer":"","room":"源福厅1+2+3","speakerText":"边思康 蚂蚁集团 /蚂蚁集团百灵基础模型产品和运营负责人","speakers":[{"name":"：边思康","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7167","focus":["研发效能","模型与推理"],"summary":"围绕“模型视角下 Agentic cowork 大规模落地前的 N 个盲区及机遇”展开，官网详情重点涉及研发效能、模型与推理等方向。","takeaways":["了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7104","day":2,"date":"2026-06-27","time":"11:20-12:00","title":"从\"机械应答\"到\"服务伙伴\"：高可控智能客服的 Agent 工程实践","topic":"Agent 系统架构与工程化实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1926","producer":"鲁浩楠","room":"祥源宴会厅 西厅","speakerText":"任巨伟 得物 /算法平台部算法专家","speakers":[{"name":"任巨伟","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7104","focus":["运行时与编排","模型与推理","业务落地"],"summary":"围绕“从\"机械应答\"到\"服务伙伴\"：高可控智能客服的 Agent 工程实践”展开，官网详情重点涉及运行时与编排、模型与推理、业务落地等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7069","day":2,"date":"2026-06-27","time":"11:20-12:00","title":"阿里 AI 红队 - REAL 智能体统一风险矩阵与自动化红队实践","topic":"Agent 安全、评测与可信治理","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1928","producer":"马传雷（岳立）","room":"祥源宴会厅 中厅","speakerText":"宋奇钊(胖錿) 阿里巴巴 /AAIG实验室AI红队负责人","speakers":[{"name":"宋奇钊(胖錿)","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7069","focus":["Agent 安全","运行时与编排","研发效能","系统治理"],"summary":"围绕“阿里 AI 红队 - REAL 智能体统一风险矩阵与自动化红队实践”展开，官网详情重点涉及Agent 安全、运行时与编排、研发效能、系统治理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7034","day":2,"date":"2026-06-27","time":"11:20-12:00","title":"算力新基建，推荐新智能：快手推荐系统池化的探索与实践","topic":"企业智算架构弹性适配","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1925","producer":"梁潇","room":"源福厅 5","speakerText":"柳嘉强 快手 /计算引擎架构负责人","speakers":[{"name":"柳嘉强 快手","company":"","position":"计算引擎架构负责人"}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7034","focus":["模型与推理"],"summary":"围绕“算力新基建，推荐新智能：快手推荐系统池化的探索与实践”展开，官网详情重点涉及模型与推理等方向。","takeaways":["了解模型与推理相关的关键问题与实践思路"]},{"id":"7120","day":2,"date":"2026-06-27","time":"11:20-12:00","title":"大前端稳定性研发范式重塑：柯南 AI Agent 工程实践","topic":"AI 时代的移动端开发范式变迁","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1942","producer":"谢国","room":"祥源宴会厅 东厅","speakerText":"王泽锋 快手 /主站技术稳定性专家","speakers":[{"name":"王泽锋","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7120","focus":["Agent 安全","端侧与硬件","研发效能","系统治理"],"summary":"围绕“大前端稳定性研发范式重塑：柯南 AI Agent 工程实践”展开，官网详情重点涉及Agent 安全、端侧与硬件、研发效能、系统治理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解端侧与硬件相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7169","day":2,"date":"2026-06-27","time":"11:20-12:00","title":"AI Native Business：从工具赋能到原生组织的转型实践","topic":"Agent 落地的前置解决方案专场","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1982","producer":"","room":"源福厅1+2+3","speakerText":"黄朝晖 广东灯塔引擎科技有限公司 /超级麦吉创始人兼CEO","speakers":[{"name":"：黄朝晖","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7169","focus":[],"summary":"围绕“AI Native Business：从工具赋能到原生组织的转型实践”展开，分享相关方法、工程实践与落地经验。","takeaways":["了解议题背景、方案设计与实际落地经验"]},{"id":"7059","day":2,"date":"2026-06-27","time":"14:00-14:40","title":"面向超大规模教育场景的 Agent 系统架构演进与工程实践","topic":"Agent 系统架构与工程化实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1926","producer":"鲁浩楠","room":"祥源宴会厅 西厅","speakerText":"王搂 科大讯飞 /高级系统架构师","speakers":[{"name":"王搂","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7059","focus":["身份与权限","记忆与上下文","运行时与编排","模型与推理","业务落地"],"summary":"围绕“面向超大规模教育场景的 Agent 系统架构演进与工程实践”展开，官网详情重点涉及身份与权限、记忆与上下文、运行时与编排、模型与推理、业务落地等方向。","takeaways":["了解身份与权限相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7101","day":2,"date":"2026-06-27","time":"14:00-14:40","title":"测试智能体驱动质量工程新范式","topic":"企业级 AI 研发：从提效到转型","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1938","producer":"沈浪","room":"祥源宴会厅 中厅","speakerText":"张晔 腾讯 /端服务质效技术负责人","speakers":[{"name":"张晔","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7101","focus":["Agent 安全","记忆与上下文","运行时与编排","端侧与硬件","研发效能"],"summary":"围绕“测试智能体驱动质量工程新范式”展开，官网详情重点涉及Agent 安全、记忆与上下文、运行时与编排、端侧与硬件、研发效能等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解端侧与硬件相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7110","day":2,"date":"2026-06-27","time":"14:00-14:40","title":"Omni Cache：以内存为中心的KV管理与推理加速","topic":"大模型推理优化","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1929","producer":"刘童璇","room":"源福厅 6","speakerText":"Ken Zhang 华为 /高级技术专家","speakers":[{"name":"Ken Zhang","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7110","focus":["沙箱与隔离","记忆与上下文","模型与推理"],"summary":"围绕“Omni Cache：以内存为中心的KV管理与推理加速”展开，官网详情重点涉及沙箱与隔离、记忆与上下文、模型与推理等方向。","takeaways":["了解沙箱与隔离相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7042","day":2,"date":"2026-06-27","time":"14:00-14:40","title":"迈向高保真与工业化：混元 3D 生成大模型从理论到实践的 SOTA 之路","topic":"人工智能前沿技术探索","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1935","producer":"张铭","room":"源福厅1+2+3","speakerText":"杨祥辉 腾讯 /资深技术专家","speakers":[{"name":"杨祥辉","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7042","focus":["多模态","模型与推理"],"summary":"围绕“迈向高保真与工业化：混元 3D 生成大模型从理论到实践的 SOTA 之路”展开，官网详情重点涉及多模态、模型与推理等方向。","takeaways":["了解多模态相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7113","day":2,"date":"2026-06-27","time":"14:00-14:40","title":"得物推荐 AI Harness - 从\"狂野代码\"到\"按目标生产\"","topic":"AI 开发生产力重构：Coder to Builder","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1936","producer":"谢吉宝（唐三）","room":"祥源宴会厅 东厅","speakerText":"白忠魏 得物 /资深技术专家","speakers":[{"name":"白忠魏 得物","company":"","position":"资深技术专家"}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7113","focus":["运行时与编排","研发效能"],"summary":"围绕“得物推荐 AI Harness - 从\"狂野代码\"到\"按目标生产\"”展开，官网详情重点涉及运行时与编排、研发效能等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7170","day":2,"date":"2026-06-27","time":"14:00-14:40","title":"鸿蒙 AI Coding的研发新范式","topic":"在 AI 时代的iOS、 Android、鸿蒙生态下，如何做好 Coding 这件事","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1983","producer":"","room":"源福厅5","speakerText":"许云红 华为 /华为终端软件部AI技术专家","speakers":[{"name":"许云红","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7170","focus":["端侧与硬件","研发效能"],"summary":"围绕“鸿蒙 AI Coding的研发新范式”展开，官网详情重点涉及端侧与硬件、研发效能等方向。","takeaways":["了解端侧与硬件相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7057","day":2,"date":"2026-06-27","time":"14:55-15:35","title":"AI Agent 沙箱的网络安全：从流量隔离到智能治理","topic":"Agent 系统架构与工程化实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1926","producer":"鲁浩楠","room":"祥源宴会厅 西厅","speakerText":"王炳燊 阿里云 /高级技术专家","speakers":[{"name":"王炳燊","company":"","position":""},{"name":"李博康","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7057","focus":["Agent 安全","身份与权限","沙箱与隔离","研发效能","模型与推理"],"summary":"围绕“AI Agent 沙箱的网络安全：从流量隔离到智能治理”展开，官网详情重点涉及Agent 安全、身份与权限、沙箱与隔离、研发效能、模型与推理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解身份与权限相关的关键问题与实践思路","了解沙箱与隔离相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7122","day":2,"date":"2026-06-27","time":"14:55-15:35","title":"从「用了 AI」到「AI 原生」——蚂蚁数科企业级 AGI 研发体系重塑实战","topic":"企业级 AI 研发：从提效到转型","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1938","producer":"沈浪","room":"祥源宴会厅 中厅","speakerText":"刘秀婷 蚂蚁数字科技 /PMO & AI 研发效能负责人，蚂蚁数科 AGI 委员会主席","speakers":[{"name":"刘秀婷","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7122","focus":["研发效能","模型与推理"],"summary":"围绕“从「用了 AI」到「AI 原生」——蚂蚁数科企业级 AGI 研发体系重塑实战”展开，官网详情重点涉及研发效能、模型与推理等方向。","takeaways":["了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7116","day":2,"date":"2026-06-27","time":"14:55-15:35","title":"从数据表征到数据流编排的存算协同优化","topic":"大模型推理优化","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1929","producer":"刘童璇","room":"源福厅 6","speakerText":"刘方鑫 上海交大 /助理教授 & 博士生导师","speakers":[{"name":"刘方鑫","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7116","focus":["运行时与编排","端侧与硬件","模型与推理"],"summary":"围绕“从数据表征到数据流编排的存算协同优化”展开，官网详情重点涉及运行时与编排、端侧与硬件、模型与推理等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解端侧与硬件相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7117","day":2,"date":"2026-06-27","time":"14:55-15:35","title":"得物电商多场景排序大模型：从千万到十亿参数的Scaling Up实践","topic":"人工智能前沿技术探索","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1935","producer":"张铭","room":"源福厅1+2+3","speakerText":"吴光亚 得物 /算法专家","speakers":[{"name":"吴光亚","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7117","focus":["模型与推理","业务落地"],"summary":"围绕“得物电商多场景排序大模型：从千万到十亿参数的Scaling Up实践”展开，官网详情重点涉及模型与推理、业务落地等方向。","takeaways":["了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7114","day":2,"date":"2026-06-27","time":"14:55-15:35","title":"Seal：小红书企业级 AI 个人助理的从 0 到全员覆盖","topic":"AI 开发生产力重构：Coder to Builder","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1936","producer":"谢吉宝（唐三）","room":"祥源宴会厅 东厅","speakerText":"孟洪进 小红书 /架构师","speakers":[{"name":"孟洪进","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7114","focus":["Agent 安全","沙箱与隔离","记忆与上下文","运行时与编排","模型与推理"],"summary":"围绕“Seal：小红书企业级 AI 个人助理的从 0 到全员覆盖”展开，官网详情重点涉及Agent 安全、沙箱与隔离、记忆与上下文、运行时与编排、模型与推理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解沙箱与隔离相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7171","day":2,"date":"2026-06-27","time":"14:55-15:35","title":"iOS开发体验分享与优秀实践 & AI 时代 Android 开发体验与优秀实践","topic":"在 AI 时代的iOS、 Android、鸿蒙生态下，如何做好 Coding 这件事","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1983","producer":"","room":"源福厅5","speakerText":"王健 美团 /美团Android 技术专家","speakers":[{"name":"王健","company":"","position":""},{"name":"何定旭","company":"","position":""},{"name":"iOS高手课作者","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7171","focus":["记忆与上下文","运行时与编排","端侧与硬件","研发效能","业务落地"],"summary":"围绕“iOS开发体验分享与优秀实践 & AI 时代 Android 开发体验与优秀实践”展开，官网详情重点涉及记忆与上下文、运行时与编排、端侧与硬件、研发效能、业务落地等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解端侧与硬件相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7105","day":2,"date":"2026-06-27","time":"16:00-16:40","title":"Self-GC：一种结合前缀缓存约束的多轮 Agent 上下文治理方案","topic":"Agent 系统架构与工程化实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1926","producer":"鲁浩楠","room":"祥源宴会厅 西厅","speakerText":"郝栩彬 小红书 /AI 工程架构师","speakers":[{"name":"郝栩彬","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7105","focus":["记忆与上下文","运行时与编排","模型与推理","业务落地","系统治理"],"summary":"围绕“Self-GC：一种结合前缀缓存约束的多轮 Agent 上下文治理方案”展开，官网详情重点涉及记忆与上下文、运行时与编排、模型与推理、业务落地、系统治理等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7139","day":2,"date":"2026-06-27","time":"16:00-16:40","title":"AI 研发下半场的组织进化与 Agent Centric Engineering 实践","topic":"企业级 AI 研发：从提效到转型","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1938","producer":"沈浪","room":"祥源宴会厅 中厅","speakerText":"董鑫 华为 2012 实验室 /项目群总监","speakers":[{"name":"董鑫","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7139","focus":["Agent 安全","记忆与上下文","运行时与编排","研发效能","系统治理"],"summary":"围绕“AI 研发下半场的组织进化与 Agent Centric Engineering 实践”展开，官网详情重点涉及Agent 安全、记忆与上下文、运行时与编排、研发效能、系统治理等方向。","takeaways":["了解Agent 安全相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7055","day":2,"date":"2026-06-27","time":"16:00-16:40","title":"xLLM 的投机推理架构设计","topic":"大模型推理优化","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1929","producer":"刘童璇","room":"源福厅 6","speakerText":"梁志伟 京东 /算法工程师","speakers":[{"name":"梁志伟","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7055","focus":["运行时与编排","模型与推理"],"summary":"围绕“xLLM 的投机推理架构设计”展开，官网详情重点涉及运行时与编排、模型与推理等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7100","day":2,"date":"2026-06-27","time":"16:00-16:40","title":"MinerU：面向 Agent 时代的文档解析基础设施演进与实践","topic":"人工智能前沿技术探索","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1935","producer":"张铭","room":"源福厅1+2+3","speakerText":"何聪辉 上海人工智能实验室 /青年科学家","speakers":[{"name":"何聪辉","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7100","focus":["记忆与上下文","数据工程","多模态","模型与推理"],"summary":"围绕“MinerU：面向 Agent 时代的文档解析基础设施演进与实践”展开，官网详情重点涉及记忆与上下文、数据工程、多模态、模型与推理等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解数据工程相关的关键问题与实践思路","了解多模态相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7115","day":2,"date":"2026-06-27","time":"16:00-16:40","title":"从 AI Coding 到可验收的研发闭环：蚂蚁数科Harness工程实践","topic":"AI 开发生产力重构：Coder to Builder","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1936","producer":"谢吉宝（唐三）","room":"祥源宴会厅 东厅","speakerText":"魏长征 蚂蚁数字科技 /资深技术专家","speakers":[{"name":"魏长征","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7115","focus":["运行时与编排","研发效能"],"summary":"围绕“从 AI Coding 到可验收的研发闭环：蚂蚁数科Harness工程实践”展开，官网详情重点涉及运行时与编排、研发效能等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]},{"id":"7173","day":2,"date":"2026-06-27","time":"16:00-16:40","title":"从个人提效到组织生产力提升：快手 AI Coding 演进实践 & Coding Agent 重塑研发效率 · 超级个体篇","topic":"在 AI 时代的iOS、 Android、鸿蒙生态下，如何做好 Coding 这件事","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1983","producer":"","room":"源福厅5","speakerText":"李京 快手 /AI Coding 负责人","speakers":[{"name":"李京","company":"","position":""},{"name":"唐俊开","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7173","focus":["端侧与硬件","研发效能","模型与推理"],"summary":"围绕“从个人提效到组织生产力提升：快手 AI Coding 演进实践 & Coding Agent 重塑研发效率 · 超级个体篇”展开，官网详情重点涉及端侧与硬件、研发效能、模型与推理等方向。","takeaways":["了解端侧与硬件相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7108","day":2,"date":"2026-06-27","time":"16:55-17:35","title":"Roboneo：设计生产场景下多智能体编排工程实践","topic":"Agent 系统架构与工程化实践","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1926","producer":"鲁浩楠","room":"祥源宴会厅 西厅","speakerText":"周劲飞 美图 /高级算法工程师","speakers":[{"name":"周劲飞","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7108","focus":["运行时与编排","模型与推理","业务落地"],"summary":"围绕“Roboneo：设计生产场景下多智能体编排工程实践”展开，官网详情重点涉及运行时与编排、模型与推理、业务落地等方向。","takeaways":["了解运行时与编排相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路","了解业务落地相关的关键问题与实践思路"]},{"id":"7102","day":2,"date":"2026-06-27","time":"16:55-17:35","title":"网易智企 IM 研发多智能体中心建设与实践：从单点 Agent 到研发基础设施","topic":"企业级 AI 研发：从提效到转型","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1938","producer":"沈浪","room":"祥源宴会厅 中厅","speakerText":"徐孟祥 网易 /资深全栈工程师","speakers":[{"name":"徐孟祥","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7102","focus":["身份与权限","记忆与上下文","运行时与编排","研发效能","系统治理"],"summary":"围绕“网易智企 IM 研发多智能体中心建设与实践：从单点 Agent 到研发基础设施”展开，官网详情重点涉及身份与权限、记忆与上下文、运行时与编排、研发效能、系统治理等方向。","takeaways":["了解身份与权限相关的关键问题与实践思路","了解记忆与上下文相关的关键问题与实践思路","了解运行时与编排相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路","了解系统治理相关的关键问题与实践思路"]},{"id":"7064","day":2,"date":"2026-06-27","time":"16:55-17:35","title":"记忆感知的大模型 KVCache 优化","topic":"大模型推理优化","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1929","producer":"刘童璇","room":"源福厅 6","speakerText":"马腾 阿里云 /高级技术专家","speakers":[{"name":"马腾","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7064","focus":["记忆与上下文","模型与推理"],"summary":"围绕“记忆感知的大模型 KVCache 优化”展开，官网详情重点涉及记忆与上下文、模型与推理等方向。","takeaways":["了解记忆与上下文相关的关键问题与实践思路","了解模型与推理相关的关键问题与实践思路"]},{"id":"7046","day":2,"date":"2026-06-27","time":"16:55-17:35","title":"生成式推荐引擎升级，快手在线参数服务器性能与时延深度优化实践","topic":"人工智能前沿技术探索","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1935","producer":"张铭","room":"源福厅1+2+3","speakerText":"贾荣来 快手科技 /社区科学部 推荐架构高级专家","speakers":[{"name":"贾荣来","company":"","position":""}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7046","focus":["模型与推理"],"summary":"围绕“生成式推荐引擎升级，快手在线参数服务器性能与时延深度优化实践”展开，官网详情重点涉及模型与推理等方向。","takeaways":["了解模型与推理相关的关键问题与实践思路"]},{"id":"7119","day":2,"date":"2026-06-27","time":"16:55-17:35","title":"Qoder CLI：终端里的全栈工程师——从 Coding Agent 到企业级 AI 应用基础设施","topic":"AI 开发生产力重构：Coder to Builder","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1936","producer":"谢吉宝（唐三）","room":"祥源宴会厅 东厅","speakerText":"徐亮亮 阿里巴巴 / Qoder 技术专家","speakers":[{"name":"徐亮亮 阿里巴巴","company":"","position":"Qoder 技术专家"}],"pptStatus":"unmarked","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7119","focus":["研发效能"],"summary":"围绕“Qoder CLI：终端里的全栈工程师——从 Coding Agent 到企业级 AI 应用基础设施”展开，官网详情重点涉及研发效能等方向。","takeaways":["了解研发效能相关的关键问题与实践思路"]},{"id":"7174","day":2,"date":"2026-06-27","time":"16:55-17:35","title":"AI辅助开发工具在鸿蒙开发领域的优秀实践","topic":"在 AI 时代的iOS、 Android、鸿蒙生态下，如何做好 Coding 这件事","topicUrl":"https://aicon.infoq.cn/2026/shanghai/track/1983","producer":"","room":"源福厅5","speakerText":"姜钰潇 华为 /华为终端软件部Agent产品架构师","speakers":[{"name":"姜钰潇","company":"","position":""}],"pptStatus":"forbidden","pptUrl":"","url":"https://aicon.infoq.cn/2026/shanghai/presentation/7174","focus":["端侧与硬件","研发效能"],"summary":"围绕“AI辅助开发工具在鸿蒙开发领域的优秀实践”展开，官网详情重点涉及端侧与硬件、研发效能等方向。","takeaways":["了解端侧与硬件相关的关键问题与实践思路","了解研发效能相关的关键问题与实践思路"]}]}</script>
+  <script id="initial-state" type="application/json">{"version":1,"revision":0,"activeMemberId":null,"assignments":{},"modifiedAt":null,"modifiedBy":null}</script>
+  <script>
+    (() => {
+      "use strict";
+
+      const data = JSON.parse(document.getElementById("schedule-data").textContent);
+      const embeddedState = JSON.parse(document.getElementById("initial-state").textContent);
+      const storageKey = "aicon-2026-team-schedule-v1";
+      const memberMap = Object.fromEntries(data.members.map((member) => [member.id, member]));
+      const sessionMap = Object.fromEntries(data.sessions.map((session) => [session.id, session]));
+
+      const filters = {
+        day: 1,
+        member: "all",
+        topic: "all",
+        ppt: "all",
+        search: "",
+        unassigned: false,
+      };
+
+      let selectedSessionId = null;
+      let toastTimer = null;
+
+      function safeParse(value) {
+        try { return JSON.parse(value); } catch { return null; }
+      }
+
+      function safeStorageGet(key) {
+        try { return localStorage.getItem(key); } catch { return null; }
+      }
+
+      function safeStorageSet(key, value) {
+        try {
+          localStorage.setItem(key, value);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      function cloneValue(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function stateTimestamp(value) {
+        return value && value.modifiedAt ? Date.parse(value.modifiedAt) || 0 : 0;
+      }
+
+      function loadState() {
+        const stored = safeParse(safeStorageGet(storageKey));
+        if (!stored) return cloneValue(embeddedState);
+        if ((stored.revision || 0) > (embeddedState.revision || 0)) return stored;
+        if (stateTimestamp(stored) > stateTimestamp(embeddedState)) return stored;
+        return cloneValue(embeddedState);
+      }
+
+      let state = loadState();
+      state.assignments ||= {};
+      state.activeMemberId = null;
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function persist() {
+        return safeStorageSet(storageKey, JSON.stringify(state));
+      }
+
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+      }
+
+      function assignedMembers(sessionId) {
+        return state.assignments[sessionId] || [];
+      }
+
+      function isAssigned(sessionId, memberId) {
+        return assignedMembers(sessionId).includes(memberId);
+      }
+
+      function timeRange(session) {
+        const [start, end] = session.time.split("-").map((part) => {
+          const [hour, minute] = part.split(":").map(Number);
+          return hour * 60 + minute;
+        });
+        return { start, end };
+      }
+
+      function sessionsOverlap(left, right) {
+        if (left.date !== right.date) return false;
+        const a = timeRange(left);
+        const b = timeRange(right);
+        return a.start < b.end && b.start < a.end;
+      }
+
+      function conflictData() {
+        const result = {};
+        for (const member of data.members) {
+          const selected = assignableSessions().filter((session) => isAssigned(session.id, member.id));
+          const involved = new Set();
+          let pairs = 0;
+          for (let i = 0; i < selected.length; i += 1) {
+            for (let j = i + 1; j < selected.length; j += 1) {
+              if (sessionsOverlap(selected[i], selected[j])) {
+                pairs += 1;
+                involved.add(selected[i].id);
+                involved.add(selected[j].id);
+              }
+            }
+          }
+          result[member.id] = { pairs, involved };
+        }
+        return result;
+      }
+
+      function sessionHasConflict(sessionId, conflicts) {
+        return data.members.some((member) => conflicts[member.id].involved.has(sessionId));
+      }
+
+      function assignmentColor(sessionId) {
+        const memberIds = assignedMembers(sessionId);
+        if (!memberIds.length) return "#bfcee0";
+        return memberMap[memberIds[0]]?.color || "#bfcee0";
+      }
+
+      function toggleAssignment(sessionId) {
+        const memberId = state.activeMemberId;
+        if (!memberId) {
+          showToast("请先在顶部选择当前编辑人");
+          return;
+        }
+
+        const current = new Set(assignedMembers(sessionId));
+        if (current.has(memberId)) current.delete(memberId);
+        else current.add(memberId);
+
+        if (current.size) state.assignments[sessionId] = [...current];
+        else delete state.assignments[sessionId];
+
+        state.revision = (state.revision || 0) + 1;
+        state.modifiedAt = new Date().toISOString();
+        state.modifiedBy = memberId;
+        persist();
+        render();
+        if (selectedSessionId === sessionId) openDrawer(sessionId);
+      }
+
+      function assignmentChips(sessionId, compact = false) {
+        return data.members
+          .filter((member) => isAssigned(sessionId, member.id))
+          .map((member) => {
+          const label = compact ? member.name.slice(-2) : member.name;
+          return `
+            <span
+              class="assignment-chip selected"
+              style="--member-color:${member.color}"
+              title="${member.name}已关注此议题"
+            >
+              <span class="member-dot"></span>${escapeHtml(label)}
+            </span>`;
+          }).join("");
+      }
+
+      function pptLabel(status) {
+        if (status === "available") return "有 PPT";
+        if (status === "forbidden") return "不提供 PPT";
+        return "PPT 未标注";
+      }
+
+      function sessionCard(session, conflicts, compact = false) {
+        const assigned = assignedMembers(session.id);
+        const conflict = sessionHasConflict(session.id, conflicts);
+        return `
+          <article
+            class="session-card ${assigned.length ? "assigned" : ""} ${conflict ? "conflict" : ""}"
+            style="--assignment-color:${assignmentColor(session.id)}"
+            data-session-id="${session.id}"
+            tabindex="0"
+            role="button"
+            aria-label="添加或取消当前编辑人的分工：${escapeHtml(session.title)}"
+            title="${state.activeMemberId ? `点击添加或取消${memberMap[state.activeMemberId].name}的分工` : "请先选择当前编辑人"}"
+          >
+            <h3 class="session-title">${escapeHtml(session.title)}</h3>
+            <div class="speaker-line">${escapeHtml(session.speakerText)}</div>
+            <div class="meta-row">
+              ${session.pptStatus === "forbidden" ? '<span class="ppt-badge forbidden">不提供 PPT</span>' : ""}
+              ${conflict ? '<span class="conflict-badge">撞场</span>' : ""}
+              <a class="detail-button" href="${escapeHtml(session.url)}" target="_blank" rel="noreferrer" data-action="view-detail" data-session-id="${session.id}">详情</a>
+            </div>
+            ${assigned.length ? `<div class="assignment-row">${assignmentChips(session.id, compact)}</div>` : ""}
+          </article>`;
+      }
+
+      function filteredSessions() {
+        const needle = filters.search.trim().toLocaleLowerCase();
+        return assignableSessions().filter((session) => {
+          if (session.day !== Number(filters.day)) return false;
+          if (filters.member !== "all" && !isAssigned(session.id, filters.member)) return false;
+          if (filters.topic !== "all" && session.topic !== filters.topic) return false;
+          if (filters.ppt !== "all" && session.pptStatus !== filters.ppt) return false;
+          if (filters.unassigned && assignedMembers(session.id).length) return false;
+          if (needle) {
+            const haystack = [session.title, session.topic, session.room, session.speakerText].join(" ").toLocaleLowerCase();
+            if (!haystack.includes(needle)) return false;
+          }
+          return true;
+        });
+      }
+
+      function periodFor(session) {
+        return timeRange(session).start < 12 * 60 ? "morning" : "afternoon";
+      }
+
+      function periodLabel(period) {
+        return period === "morning" ? "上午" : "下午";
+      }
+
+      function normalizedRoom(room) {
+        return room
+          .replace(/\s+/g, " ")
+          .replace(/^源福厅(?=\d)/, "源福厅 ")
+          .trim();
+      }
+
+      function assignableSessions() {
+        return data.sessions.filter(
+          (session) => !(session.day === 1 && periodFor(session) === "morning"),
+        );
+      }
+
+      function roomOrder(day, period) {
+        const rooms = [];
+        for (const session of assignableSessions().filter(
+          (item) => item.day === day && periodFor(item) === period,
+        )) {
+          const room = normalizedRoom(session.room);
+          if (!rooms.includes(room)) rooms.push(room);
+        }
+        return rooms;
+      }
+
+      function timeOrder(day, period) {
+        return [...new Set(assignableSessions()
+          .filter((item) => item.day === day && periodFor(item) === period)
+          .map((item) => item.time))]
+          .sort((left, right) => timeRange({ time: left }).start - timeRange({ time: right }).start);
+      }
+
+      function periodsForDay(day) {
+        return ["morning", "afternoon"].filter((period) => timeOrder(day, period).length);
+      }
+
+      function renderDesktop(visible, conflicts) {
+        const day = Number(filters.day);
+        const visibleIds = new Set(visible.map((session) => session.id));
+        document.getElementById("desktop-schedule").innerHTML = periodsForDay(day).map((period) => {
+          const rooms = roomOrder(day, period);
+          const times = timeOrder(day, period);
+          const topicForRoom = Object.fromEntries(rooms.map((room) => {
+            const session = assignableSessions().find(
+              (item) => item.day === day && periodFor(item) === period && normalizedRoom(item.room) === room,
+            );
+            return [room, session || {}];
+          }));
+          const rows = times.map((time) => {
+            const cells = rooms.map((room) => {
+              const sessions = assignableSessions().filter(
+                (session) =>
+                  session.day === day &&
+                  periodFor(session) === period &&
+                  session.time === time &&
+                  normalizedRoom(session.room) === room &&
+                  visibleIds.has(session.id),
+              );
+              return sessions.length
+                ? `<td class="schedule-cell">${sessions.map((session) => sessionCard(session, conflicts, true)).join("")}</td>`
+                : '<td class="schedule-cell empty"></td>';
+            }).join("");
+            return `<tr><td class="time-cell">${escapeHtml(time)}</td>${cells}</tr>`;
+          }).join("");
+          return `
+            <table class="schedule-table period-table">
+              <thead>
+                <tr class="topic-header-row">
+                  <th class="time-head" rowspan="2">${periodLabel(period)}</th>
+                  ${rooms.map((room) => {
+                    const item = topicForRoom[room];
+                    return `<th>${escapeHtml(item.topic || "")}${item.producer ? `<small>${escapeHtml(item.producer)} 出品</small>` : ""}</th>`;
+                  }).join("")}
+                </tr>
+                <tr class="room-header-row">${rooms.map((room) => `<th>${escapeHtml(room)}</th>`).join("")}</tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>`;
+        }).join("");
+      }
+
+      function renderMobile(visible, conflicts) {
+        const day = Number(filters.day);
+        const visibleIds = new Set(visible.map((session) => session.id));
+        document.getElementById("mobile-schedule").innerHTML = periodsForDay(day).map((period) =>
+          timeOrder(day, period).map((time) => {
+            const sessions = assignableSessions().filter(
+              (session) =>
+                session.day === day &&
+                periodFor(session) === period &&
+                session.time === time &&
+                visibleIds.has(session.id),
+            );
+            if (!sessions.length) return "";
+            return `
+              <section class="mobile-time-group">
+                <h2 class="mobile-time">${periodLabel(period)} · ${escapeHtml(time)}</h2>
+                ${sessions.map((session) => `
+                  <div class="mobile-track">${escapeHtml(session.topic)}</div>
+                  <div class="mobile-room">${escapeHtml(normalizedRoom(session.room))}</div>
+                  ${sessionCard(session, conflicts)}
+                `).join("")}
+              </section>`;
+          }).join("")
+        ).join("");
+      }
+
+      function renderEditor() {
+        document.getElementById("editor-switcher").innerHTML = data.members.map((member) => `
+          <button
+            class="editor-button ${state.activeMemberId === member.id ? "active" : ""}"
+            style="--member-color:${member.color}"
+            type="button"
+            data-editor-id="${member.id}"
+          >
+            <span class="member-dot"></span>${escapeHtml(member.name)}
+          </button>`).join("");
+
+        const status = document.getElementById("relay-status");
+        const active = memberMap[state.activeMemberId];
+        if (!active) {
+          status.innerHTML = "<strong>尚未选择编辑人</strong>选择身份后，只能增删自己的分工。";
+        } else {
+          const count = assignableSessions().filter((session) => isAssigned(session.id, active.id)).length;
+          status.innerHTML = `<strong>正在编辑：${escapeHtml(active.name)}</strong>已安排 ${count} 场；其他成员的分工保持锁定。`;
+        }
+      }
+
+      function renderSummary(visible, conflicts) {
+        const assignable = assignableSessions();
+        const assignedCount = assignable.filter((session) => assignedMembers(session.id).length).length;
+        document.getElementById("schedule-summary").innerHTML = `
+          <span><strong>${visible.length}</strong> 场正在显示</span>
+          <span><strong>${assignedCount}</strong> / ${assignable.length} 场已有分工</span>
+          <span>数据抓取：${data.conference.capturedAt}</span>`;
+
+        document.getElementById("conflict-summary").innerHTML = data.members.map((member) => {
+          const count = conflicts[member.id].pairs;
+          return `<span class="conflict-pill ${count ? "danger" : ""}" style="--member-color:${member.color}">
+            ${escapeHtml(member.name)}：${count ? `${count} 组撞场` : "无撞场"}
+          </span>`;
+        }).join("");
+      }
+
+      function renderTabs() {
+        document.getElementById("day-tabs").innerHTML = [1, 2].map((day) => `
+          <button class="day-tab ${Number(filters.day) === day ? "active" : ""}" type="button" data-day="${day}">
+            第${day === 1 ? "一" : "二"}天 · 6 月 ${day === 1 ? "26" : "27"} 日
+          </button>`).join("");
+      }
+
+      function render() {
+        const visible = filteredSessions();
+        const conflicts = conflictData();
+        renderEditor();
+        renderTabs();
+        renderSummary(visible, conflicts);
+        renderDesktop(visible, conflicts);
+        renderMobile(visible, conflicts);
+        document.getElementById("empty-state").hidden = visible.length > 0;
+      }
+
+      function openDrawer(sessionId) {
+        const session = sessionMap[sessionId];
+        if (!session) return;
+        selectedSessionId = sessionId;
+        const drawer = document.getElementById("detail-drawer");
+        drawer.innerHTML = `
+          <button class="drawer-close" type="button" data-action="close-drawer" aria-label="关闭">×</button>
+          <div class="drawer-kicker">${escapeHtml(session.topic)}</div>
+          <h2 class="drawer-title">${escapeHtml(session.title)}</h2>
+          <div class="drawer-meta">${escapeHtml(session.date)} · ${escapeHtml(session.time)} · ${escapeHtml(session.room)}</div>
+          ${session.pptStatus === "forbidden" ? '<div class="meta-row"><span class="ppt-badge forbidden">不提供 PPT</span></div>' : ""}
+
+          <div class="drawer-section">
+            <h3>分工</h3>
+            ${assignedMembers(session.id).length ? `<div class="assignment-row">${assignmentChips(session.id)}</div>` : "<p>暂时无人关注此议题。</p>"}
+            <div class="notice">返回日程后，选择顶部的“当前编辑人”，再点击议题卡即可添加或取消自己的分工。</div>
+          </div>
+
+          <div class="drawer-section">
+            <h3>结构化摘要</h3>
+            <p>${escapeHtml(session.summary)}</p>
+            ${session.focus.length ? `<ul class="focus-list">${session.focus.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}
+          </div>
+
+          <div class="drawer-section">
+            <h3>可重点带走</h3>
+            <ul class="takeaway-list">${session.takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+          </div>
+
+          <div class="drawer-section">
+            <h3>讲师信息</h3>
+            ${session.speakers.map((speaker) => `
+              <div class="speaker-block">
+                <strong>${escapeHtml(speaker.name)}</strong>
+                <span>${escapeHtml([speaker.company, speaker.position].filter(Boolean).join(" · ") || session.speakerText)}</span>
+              </div>`).join("")}
+          </div>
+
+          <div class="drawer-actions">
+            <a class="button subtle" href="${escapeHtml(session.url)}" target="_blank" rel="noreferrer">查看官网完整介绍</a>
+            ${session.topicUrl ? `<a class="button subtle" href="${escapeHtml(session.topicUrl)}" target="_blank" rel="noreferrer">查看所属专题</a>` : ""}
+          </div>`;
+        drawer.setAttribute("aria-hidden", "false");
+        document.body.classList.add("drawer-open");
+      }
+
+      function closeDrawer() {
+        selectedSessionId = null;
+        document.body.classList.remove("drawer-open");
+        document.getElementById("detail-drawer").setAttribute("aria-hidden", "true");
+      }
+
+      function populateFilters() {
+        document.getElementById("filter-day").innerHTML = `
+          <option value="1">第一天 · 6 月 26 日</option>
+          <option value="2">第二天 · 6 月 27 日</option>`;
+        document.getElementById("filter-member").innerHTML = `
+          <option value="all">全部成员</option>
+          ${data.members.map((member) => `<option value="${member.id}">只看 ${escapeHtml(member.name)}</option>`).join("")}`;
+        const topics = [...new Set(data.sessions.map((session) => session.topic))].sort((a, b) => a.localeCompare(b, "zh-CN"));
+        document.getElementById("filter-topic").innerHTML = `
+          <option value="all">全部专题</option>
+          ${topics.map((topic) => `<option value="${escapeHtml(topic)}">${escapeHtml(topic)}</option>`).join("")}`;
+        document.getElementById("filter-ppt").innerHTML = `
+          <option value="all">全部 PPT 状态</option>
+          <option value="available">有 PPT</option>
+          <option value="forbidden">不提供 PPT</option>
+          <option value="unmarked">PPT 未标注</option>`;
+      }
+
+      function exportHtml() {
+        const active = memberMap[state.activeMemberId];
+        const exportedState = {
+          ...state,
+          activeMemberId: null,
+          modifiedAt: new Date().toISOString(),
+          modifiedBy: active?.id || state.modifiedBy || null,
+        };
+        const clone = document.documentElement.cloneNode(true);
+        clone.querySelector("body")?.classList.remove("drawer-open");
+        const initialStateScript = clone.querySelector("#initial-state");
+        initialStateScript.textContent = JSON.stringify(exportedState).replaceAll("<", "\\u003c");
+        const drawer = clone.querySelector("#detail-drawer");
+        if (drawer) drawer.innerHTML = "";
+
+        const blob = new Blob(["<!doctype html>\n", clone.outerHTML], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        const revision = String(exportedState.revision || 0).padStart(2, "0");
+        link.href = url;
+        link.download = `aicon-2026-team-schedule-r${revision}.html`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showToast(`已导出接力版${active ? `，最后编辑：${active.name}` : ""}`);
+      }
+
+      document.addEventListener("click", (event) => {
+        const editor = event.target.closest("[data-editor-id]");
+        if (editor) {
+          state.activeMemberId = editor.dataset.editorId;
+          persist();
+          render();
+          showToast(`当前编辑人：${memberMap[state.activeMemberId].name}`);
+          return;
+        }
+
+        const dayTab = event.target.closest("[data-day]");
+        if (dayTab) {
+          filters.day = Number(dayTab.dataset.day);
+          document.getElementById("filter-day").value = String(filters.day);
+          render();
+          return;
+        }
+
+        const detail = event.target.closest('[data-action="view-detail"]');
+        if (detail) {
+          event.stopPropagation();
+          return;
+        }
+
+        if (event.target.closest('[data-action="close-drawer"]') || event.target.id === "drawer-backdrop") {
+          closeDrawer();
+          return;
+        }
+
+        const card = event.target.closest(".session-card");
+        if (card) toggleAssignment(card.dataset.sessionId);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeDrawer();
+        if ((event.key === "Enter" || event.key === " ") && event.target.classList.contains("session-card")) {
+          event.preventDefault();
+          toggleAssignment(event.target.dataset.sessionId);
+        }
+      });
+
+      document.getElementById("filter-day").addEventListener("change", (event) => {
+        filters.day = Number(event.target.value);
+        render();
+      });
+      document.getElementById("filter-member").addEventListener("change", (event) => {
+        filters.member = event.target.value;
+        render();
+      });
+      document.getElementById("filter-topic").addEventListener("change", (event) => {
+        filters.topic = event.target.value;
+        render();
+      });
+      document.getElementById("filter-ppt").addEventListener("change", (event) => {
+        filters.ppt = event.target.value;
+        render();
+      });
+      document.getElementById("filter-search").addEventListener("input", (event) => {
+        filters.search = event.target.value;
+        render();
+      });
+      document.getElementById("filter-unassigned").addEventListener("change", (event) => {
+        filters.unassigned = event.target.checked;
+        render();
+      });
+      document.getElementById("export-html").addEventListener("click", exportHtml);
+
+      populateFilters();
+      render();
+      document.getElementById("static-fallback").hidden = true;
+    })();
+  </script>
+</body>
+</html>
